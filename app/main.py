@@ -1,19 +1,39 @@
-from app.core.config import settings
-from app.core.database import Base, engine
-from app.core.logging import setup_logger
+from contextlib import asynccontextmanager
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
-logger = setup_logger(__name__)
+from app.core.config import settings
+from app.core.logger import setup_logger
+from app.routes import auth, media, search, tracking
 
-Base.metadata.create_all(bind=engine)
+logger = setup_logger("main")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event handler"""
+    logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
+
+    # Database tables should be created via Alembic migrations
+    # Run: alembic upgrade head
+    logger.info("Application started - ensure database migrations are up to date")
+
+    yield
+
+    logger.info(f"Shutting down {settings.APP_NAME}")
+
 
 app = FastAPI(
-    title="Listify",
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION,
     debug=settings.DEBUG,
-    version="1.0.0",
+    lifespan=lifespan,
 )
 
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,19 +42,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount static files
+app.mount("/static", StaticFiles(directory=str(Path(__file__).parent.parent / "static")), name="static")
+
+# Include routers
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(media.router, prefix="/api/media", tags=["media"])
+app.include_router(tracking.router, prefix="/api/tracking", tags=["tracking"])
+app.include_router(search.router, prefix="/api/search", tags=["search"])
+
 
 @app.get("/")
-def root():
-    logger.info("Root endpoint called")
-    return {"message": "Listify API", "version": "1.0.0"}
+async def root():
+    """Root endpoint"""
+    return {
+        "name": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "status": "running",
+    }
 
 
 @app.get("/health")
-def health():
-    return {"status": "ok"}
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=settings.DEBUG)
+async def health():
+    """Health check endpoint"""
+    return {"status": "healthy"}

@@ -1,20 +1,18 @@
-from datetime import datetime, timezone
-
-from app.core.database import Base
-from sqlalchemy import (Column, DateTime, Enum, ForeignKey, Integer, String,
-                        UniqueConstraint)
+from sqlalchemy import Column
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import relationship
 
-from .media import MediaTypeEnum
+from app.core.database import Base
+from app.models.media import MediaTypeEnum
 
 
 class Tag(Base):
     __tablename__ = "tags"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(50), nullable=False, index=True)
-    slug = Column(String(50), nullable=False, unique=True, index=True)
-    created_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
+    name = Column(String(100), nullable=False, unique=True, index=True)
+    slug = Column(String(100), nullable=False, unique=True, index=True)
 
     # Relationships
     media_associations = relationship(
@@ -26,23 +24,26 @@ class Tag(Base):
 
 
 class MediaTag(Base):
+    """Association table between Media and Tags"""
+
     __tablename__ = "media_tags"
 
     id = Column(Integer, primary_key=True, index=True)
     media_id = Column(
         Integer, ForeignKey("media.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    media_type = Column(Enum(MediaTypeEnum), nullable=False, index=True)
     tag_id = Column(
         Integer, ForeignKey("tags.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    created_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
+    media_type = Column(SQLEnum(MediaTypeEnum), nullable=False, index=True)
+
+    __table_args__ = (UniqueConstraint("media_id", "tag_id", name="uq_media_tag"),)
 
     # Relationships
+    media = relationship("Media", back_populates="tag_associations")
     tag = relationship("Tag", back_populates="media_associations")
 
-    # Constraints
-    __table_args__ = (UniqueConstraint("media_id", "tag_id", name="unique_media_tag"),)
-
     def __repr__(self):
-        return f"<MediaTag(media_id={self.media_id}, tag_id={self.tag_id})>"
+        return (
+            f"<MediaTag(id={self.id}, media_id={self.media_id}, tag_id={self.tag_id})>"
+        )

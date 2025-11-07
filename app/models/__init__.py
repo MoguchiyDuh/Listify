@@ -1,25 +1,29 @@
 from .anime import Anime
 from .book import Book
-from .game import Game
-from .media import Media, MediaTypeEnum, PriorityEnum, StatusEnum
+from .game import Game, PlatformEnum
+from .manga import Manga
+from .media import AgeRatingEnum, Media, MediaStatusEnum, MediaTypeEnum
 from .movie import Movie
 from .series import Series
 from .tag import MediaTag, Tag
+from .tracking import Tracking, TrackingStatusEnum
 from .user import User
-from .user_media import UserMedia
 
 __all__ = [
-    "MediaTypeEnum",
-    "StatusEnum",
-    "PriorityEnum",
-    "User",
     "Media",
+    "MediaTypeEnum",
+    "MediaStatusEnum",
+    "AgeRatingEnum",
+    "User",
     "Movie",
     "Series",
     "Anime",
+    "Manga",
     "Book",
     "Game",
-    "UserMedia",
+    "PlatformEnum",
+    "Tracking",
+    "TrackingStatusEnum",
     "Tag",
     "MediaTag",
 ]

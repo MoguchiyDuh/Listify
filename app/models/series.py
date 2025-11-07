@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Enum, ForeignKey, Integer
+from sqlalchemy import Column
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import ForeignKey, Integer
 
-from .media import AnimeSeriesStatusEnum, Media, MediaTypeEnum
+from app.models.media import Media, MediaStatusEnum, MediaTypeEnum
 
 
 class Series(Media):
@@ -9,11 +11,7 @@ class Series(Media):
     id = Column(Integer, ForeignKey("media.id"), primary_key=True)
     total_episodes = Column(Integer, nullable=True)
     seasons = Column(Integer, nullable=True)
-    status = Column(
-        Enum(AnimeSeriesStatusEnum),
-        nullable=True,
-        default=AnimeSeriesStatusEnum.FINISHED,
-    )
+    status = Column(SQLEnum(MediaStatusEnum), nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": MediaTypeEnum.SERIES,

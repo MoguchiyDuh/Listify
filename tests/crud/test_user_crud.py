@@ -1,147 +1,126 @@
 import pytest
-from app.crud import UserCRUD
-from app.schemas import UserCreate, UserUpdate
+
+from app.crud import user_crud
 
 
 @pytest.mark.crud
 class TestUserCRUD:
+    """Tests for user CRUD operations"""
 
     def test_create_user(self, db_session):
-        user_data = UserCreate(
-            username="testuser", email="test@example.com", password="SecurePass123"
+        """Test creating a user"""
+        user = user_crud.create(
+            db_session,
+            username="newuser",
+            email="new@example.com",
+            password="password123",
         )
-        user = UserCRUD.create(db_session, user_data)
 
-        assert user.username == "testuser"
-        assert user.email == "test@example.com"
-        assert user.hashed_password != "SecurePass123"
-        assert user.is_active is True
         assert user.id is not None
+        assert user.username == "newuser"
+        assert user.email == "new@example.com"
+        assert user.hashed_password != "password123"  # Password should be hashed
 
-    def test_get_user_by_id(self, db_session):
-        user_data = UserCreate(
-            username="test", email="test@test.com", password="password123"
+    def test_get_user_by_id(self, db_session, sample_user):
+        """Test getting a user by ID"""
+        user = user_crud.get(db_session, sample_user.id)
+
+        assert user is not None
+        assert user.id == sample_user.id
+        assert user.username == sample_user.username
+
+    def test_get_user_by_email(self, db_session, sample_user):
+        """Test getting a user by email"""
+        user = user_crud.get_by_email(db_session, email=sample_user.email)
+
+        assert user is not None
+        assert user.id == sample_user.id
+        assert user.email == sample_user.email
+
+    def test_get_user_by_username(self, db_session, sample_user):
+        """Test getting a user by username"""
+        user = user_crud.get_by_username(db_session, username=sample_user.username)
+
+        assert user is not None
+        assert user.id == sample_user.id
+        assert user.username == sample_user.username
+
+    def test_authenticate_user_success(self, db_session, sample_user):
+        """Test successful user authentication"""
+        user = user_crud.authenticate(
+            db_session, username="testuser", password="testpassword123"
         )
-        created_user = UserCRUD.create(db_session, user_data)
 
-        fetched_user = UserCRUD.get_by_id(db_session, created_user.id)
+        assert user is not None
+        assert user.id == sample_user.id
 
-        assert fetched_user is not None
-        assert fetched_user.id == created_user.id
-        assert fetched_user.username == "test"
-
-    def test_get_user_by_username(self, db_session):
-        user_data = UserCreate(
-            username="uniqueuser", email="unique@test.com", password="password123"
+    def test_authenticate_user_wrong_password(self, db_session, sample_user):
+        """Test authentication with wrong password"""
+        user = user_crud.authenticate(
+            db_session, username="testuser", password="wrongpassword"
         )
-        UserCRUD.create(db_session, user_data)
 
-        fetched_user = UserCRUD.get_by_username(db_session, "uniqueuser")
+        assert user is None
 
-        assert fetched_user is not None
-        assert fetched_user.username == "uniqueuser"
-
-    def test_get_user_by_email(self, db_session):
-        user_data = UserCreate(
-            username="emailtest", email="email@test.com", password="password123"
+    def test_authenticate_user_not_found(self, db_session):
+        """Test authentication with non-existent user"""
+        user = user_crud.authenticate(
+            db_session, username="nonexistent", password="password123"
         )
-        UserCRUD.create(db_session, user_data)
 
-        fetched_user = UserCRUD.get_by_email(db_session, "email@test.com")
+        assert user is None
 
-        assert fetched_user is not None
-        assert fetched_user.email == "email@test.com"
-
-    def test_get_user_by_username_or_email(self, db_session):
-        user_data = UserCreate(
-            username="testuser", email="test@example.com", password="password123"
+    def test_update_user(self, db_session, sample_user):
+        """Test updating a user"""
+        updated_user = user_crud.update(
+            db_session,
+            user=sample_user,
+            username="updateduser",
+            email="updated@example.com",
         )
-        UserCRUD.create(db_session, user_data)
 
-        by_username = UserCRUD.get_by_username_or_email(db_session, "testuser")
-        by_email = UserCRUD.get_by_username_or_email(db_session, "test@example.com")
+        assert updated_user.username == "updateduser"
+        assert updated_user.email == "updated@example.com"
 
-        assert by_username is not None
-        assert by_email is not None
-        assert by_username.id == by_email.id
+    def test_update_user_password(self, db_session, sample_user):
+        """Test updating user password"""
+        old_password_hash = sample_user.hashed_password
 
-    def test_update_user(self, db_session):
-        user_data = UserCreate(
-            username="oldname", email="old@test.com", password="password123"
+        updated_user = user_crud.update(
+            db_session, user=sample_user, password="newpassword123"
         )
-        user = UserCRUD.create(db_session, user_data)
 
-        update_data = UserUpdate(email="new@test.com")
-        updated_user = UserCRUD.update(db_session, user.id, update_data)
+        assert updated_user.hashed_password != old_password_hash
 
-        assert updated_user is not None
-        assert updated_user.email == "new@test.com"
-        assert updated_user.username == "oldname"
-
-    def test_update_user_password(self, db_session):
-        user_data = UserCreate(
-            username="test", email="test@test.com", password="oldpass123"
+        # Verify new password works
+        auth_user = user_crud.authenticate(
+            db_session, username=sample_user.username, password="newpassword123"
         )
-        user = UserCRUD.create(db_session, user_data)
-        old_hash = user.hashed_password
+        assert auth_user is not None
 
-        update_data = UserUpdate(password="newpass123")
-        updated_user = UserCRUD.update(db_session, user.id, update_data)
+    def test_delete_user(self, db_session, sample_user):
+        """Test deleting a user"""
+        user_id = sample_user.id
 
-        assert updated_user.hashed_password != old_hash
-
-    def test_delete_user(self, db_session):
-        user_data = UserCreate(
-            username="deleteme", email="delete@test.com", password="password123"
-        )
-        user = UserCRUD.create(db_session, user_data)
-
-        result = UserCRUD.delete(db_session, user.id)
+        result = user_crud.delete(db_session, id=user_id)
 
         assert result is True
-        assert UserCRUD.get_by_id(db_session, user.id) is None
 
-    def test_delete_nonexistent_user(self, db_session):
-        import uuid
+        # Verify user is deleted
+        user = user_crud.get(db_session, user_id)
+        assert user is None
 
-        fake_id = uuid.uuid4()
+    def test_get_multi_users(self, db_session):
+        """Test getting multiple users"""
+        # Create multiple users
+        for i in range(5):
+            user_crud.create(
+                db_session,
+                username=f"user{i}",
+                email=f"user{i}@example.com",
+                password="password123",
+            )
 
-        result = UserCRUD.delete(db_session, fake_id)
+        users = user_crud.get_multi(db_session, skip=0, limit=10)
 
-        assert result is False
-
-    def test_user_exists_by_username(self, db_session):
-        user_data = UserCreate(
-            username="existsuser", email="exists@test.com", password="password123"
-        )
-        UserCRUD.create(db_session, user_data)
-
-        exists = UserCRUD.exists(db_session, username="existsuser")
-        not_exists = UserCRUD.exists(db_session, username="nonexistent")
-
-        assert exists is True
-        assert not_exists is False
-
-    def test_user_exists_by_email(self, db_session):
-        user_data = UserCreate(
-            username="emailcheck", email="check@test.com", password="password123"
-        )
-        UserCRUD.create(db_session, user_data)
-
-        exists = UserCRUD.exists(db_session, email="check@test.com")
-        not_exists = UserCRUD.exists(db_session, email="notfound@test.com")
-
-        assert exists is True
-        assert not_exists is False
-
-    def test_user_exists_by_both(self, db_session):
-        user_data = UserCreate(
-            username="bothcheck", email="both@test.com", password="password123"
-        )
-        UserCRUD.create(db_session, user_data)
-
-        exists = UserCRUD.exists(
-            db_session, username="bothcheck", email="both@test.com"
-        )
-
-        assert exists is True
+        assert len(users) == 5

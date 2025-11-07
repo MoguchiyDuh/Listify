@@ -1,38 +1,31 @@
-from datetime import date, datetime
-from typing import List, Optional
+from typing import Optional
 
-from app.models import MediaTypeEnum
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
+
+from app.schemas.media import MediaBase, MediaResponse, MediaUpdate
 
 
-class MovieBase(BaseModel):
-    title: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
-    release_date: Optional[date] = None
-    image: Optional[str] = Field(None, max_length=500)
-    runtime: Optional[int] = Field(None, gt=0)
-    director: Optional[str] = Field(None, max_length=255)
-    is_custom: bool = False
+class MovieBase(MediaBase):
+    """Base schema for movies"""
+
+    runtime: Optional[int] = None
 
 
 class MovieCreate(MovieBase):
+    """Schema for creating a movie"""
+
     pass
 
 
-class MovieUpdate(BaseModel):
-    title: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = None
-    release_date: Optional[date] = None
-    image: Optional[str] = Field(None, max_length=500)
-    runtime: Optional[int] = Field(None, gt=0)
-    director: Optional[str] = Field(None, max_length=255)
+class MovieUpdate(MediaUpdate):
+    """Schema for updating a movie"""
+
+    runtime: Optional[int] = None
 
 
 class MovieResponse(MovieBase):
+    """Schema for movie response"""
+
     id: int
-    media_type: MediaTypeEnum
-    created_at: datetime
-    updated_at: datetime
-    tags: List[str] = []
 
     model_config = ConfigDict(from_attributes=True)

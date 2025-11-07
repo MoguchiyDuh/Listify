@@ -1,16 +1,15 @@
-import uuid
 from datetime import datetime, timezone
 
-from app.core.database import Base
-from sqlalchemy import Boolean, Column, DateTime, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, Column, DateTime, Integer, String
 from sqlalchemy.orm import relationship
+
+from app.core.database import Base
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Integer, primary_key=True, index=True)
     username = Column(String(50), unique=True, nullable=False, index=True)
     email = Column(String(100), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
@@ -24,8 +23,8 @@ class User(Base):
     )
 
     # Relationships
-    user_media = relationship(
-        "UserMedia", back_populates="user", cascade="all, delete-orphan"
+    tracking_entries = relationship(
+        "Tracking", back_populates="user", cascade="all, delete-orphan"
     )
 
     def __repr__(self):

@@ -1,28 +1,28 @@
-import enum
+from enum import Enum
 
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String
+from sqlalchemy import JSON, Column, ForeignKey, Integer, String
 
-from .media import Media, MediaTypeEnum
+from app.models.media import Media, MediaTypeEnum
 
 
-class PlatformEnum(str, enum.Enum):
+class PlatformEnum(str, Enum):
     PC = "pc"
-    PLAYSTATION = "playstation"
-    XBOX = "xbox"
-    NINTENDO = "nintendo"
+    PS5 = "ps5"
+    PS4 = "ps4"
+    XBOX_SERIES = "xbox_series"
+    XBOX_ONE = "xbox_one"
+    SWITCH = "switch"
     MOBILE = "mobile"
-    WEB = "web"
-    OTHER = "other"
+    VR = "vr"
 
 
 class Game(Media):
     __tablename__ = "games"
 
     id = Column(Integer, ForeignKey("media.id"), primary_key=True)
-    platform = Column(Enum(PlatformEnum), nullable=False, default=PlatformEnum.PC)
+    platforms = Column(JSON, nullable=True)  # List of PlatformEnum values
     developer = Column(String(255), nullable=True)
     publisher = Column(String(255), nullable=True)
-    steam_id = Column(String(255), nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": MediaTypeEnum.GAME,

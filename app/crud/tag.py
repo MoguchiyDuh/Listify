@@ -1,274 +1,152 @@
 import re
 from typing import List, Optional
 
-from app.core import setup_logger
-from app.models import MediaTypeEnum
-from app.models.tag import MediaTag, Tag
-from app.schemas import MediaTagCreate, TagCreate, TagUpdate
-from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
-logger = setup_logger(__name__)
+from app.core.logger import setup_logger
+from app.crud.base import CRUDBase
+from app.models import MediaTypeEnum
+from app.models.tag import MediaTag, Tag
+
+logger = setup_logger("crud.tag")
 
 
-def slugify(text: str) -> str:
-    """Convert text to URL-friendly slug."""
-    text = text.lower().strip()
-    text = re.sub(r"[^\w\s-]", "", text)
-    text = re.sub(r"[-\s]+", "-", text)
-    return text
+class CRUDTag(CRUDBase[Tag]):
+    """CRUD operations for tags"""
 
-
-class TagCRUD:
     @staticmethod
-    def create(db: Session, tag_data: TagCreate) -> Tag:
-        logger.debug(f"Creating tag: {tag_data.name}")
+    def _slugify(text: str) -> str:
+        """Convert text to slug"""
+        text = text.lower().strip()
+        text = re.sub(r"[^\w\s-]", "", text)
+        text = re.sub(r"[-\s]+", "-", text)
+        return text
 
-        slug = slugify(tag_data.name)
+    def get_by_name(self, db: Session, *, name: str) -> Optional[Tag]:
+        """Get tag by name (case-insensitive)"""
+        logger.debug(f"Getting tag by name: {name}")
+        return db.query(Tag).filter(Tag.name.ilike(name)).first()
 
-        # Ensure unique slug
-        base_slug = slug
-        counter = 1
-        while db.query(Tag).filter(Tag.slug == slug).first():
-            slug = f"{base_slug}-{counter}"
-            counter += 1
+    def get_by_slug(self, db: Session, *, slug: str) -> Optional[Tag]:
+        """Get tag by slug"""
+        logger.debug(f"Getting tag by slug: {slug}")
+        return db.query(Tag).filter(Tag.slug == slug).first()
 
-        tag = Tag(name=tag_data.name, slug=slug)
+    def get_or_create(self, db: Session, *, name: str) -> Tag:
+        """Get existing tag or create new one"""
+        name = name.strip()
 
+        # Check if tag exists (case-insensitive)
+        existing_tag = self.get_by_name(db, name=name)
+        if existing_tag:
+            logger.debug(f"Found existing tag: {existing_tag.name}")
+            return existing_tag
+
+        # Create new tag
+        slug = self._slugify(name)
+        logger.info(f"Creating new tag: {name} (slug: {slug})")
+
+        tag = Tag(name=name, slug=slug)
         db.add(tag)
         db.commit()
         db.refresh(tag)
 
-        logger.debug(f"Tag created successfully: {tag.id}, slug: {tag.slug}")
+        logger.debug(f"Created tag with id: {tag.id}")
         return tag
 
-    @staticmethod
-    def get_by_id(db: Session, tag_id: int) -> Optional[Tag]:
-        logger.debug(f"Fetching tag by ID: {tag_id}")
+    def get_tags_for_media(self, db: Session, *, media_id: int) -> List[Tag]:
+        """Get all tags for a media item"""
+        logger.debug(f"Getting tags for media_id: {media_id}")
+        return db.query(Tag).join(MediaTag).filter(MediaTag.media_id == media_id).all()
 
-        tag = db.query(Tag).filter(Tag.id == tag_id).first()
-
-        if tag:
-            logger.debug(f"Tag found: {tag.name}")
-        else:
-            logger.debug(f"Tag not found: {tag_id}")
-
-        return tag
-
-    @staticmethod
-    def get_by_slug(db: Session, slug: str) -> Optional[Tag]:
-        logger.debug(f"Fetching tag by slug: {slug}")
-
-        tag = db.query(Tag).filter(Tag.slug == slug).first()
-
-        if tag:
-            logger.debug(f"Tag found: {tag.name}")
-        else:
-            logger.debug(f"Tag not found: {slug}")
-
-        return tag
-
-    @staticmethod
-    def get_by_name(db: Session, name: str) -> Optional[Tag]:
-        logger.debug(f"Fetching tag by name: {name}")
-
-        tag = db.query(Tag).filter(Tag.name.ilike(name)).first()
-
-        if tag:
-            logger.debug(f"Tag found: {tag.id}")
-        else:
-            logger.debug(f"Tag not found: {name}")
-
-        return tag
-
-    @staticmethod
-    def get_all(db: Session, skip: int = 0, limit: int = 100) -> List[Tag]:
-        logger.debug(f"Fetching all tags - skip: {skip}, limit: {limit}")
-
-        tags = db.query(Tag).offset(skip).limit(limit).all()
-
-        logger.debug(f"Found {len(tags)} tags")
-        return tags
-
-    @staticmethod
-    def search(db: Session, query: str, limit: int = 20) -> List[Tag]:
-        logger.debug(f"Searching tags - query: {query}, limit: {limit}")
-
-        tags = db.query(Tag).filter(Tag.name.ilike(f"%{query}%")).limit(limit).all()
-
-        logger.debug(f"Found {len(tags)} tags matching search")
-        return tags
-
-    @staticmethod
-    def update(db: Session, tag_id: int, tag_data: TagUpdate) -> Optional[Tag]:
-        logger.debug(f"Updating tag: {tag_id}")
-
-        tag = db.query(Tag).filter(Tag.id == tag_id).first()
-        if not tag:
-            logger.debug(f"Tag not found for update: {tag_id}")
-            return None
-
-        update_data = tag_data.model_dump(exclude_unset=True)
-
-        if "name" in update_data:
-            tag.name = update_data["name"]
-            tag.slug = slugify(update_data["name"])
-
-            # Ensure unique slug
-            base_slug = tag.slug
-            counter = 1
-            while (
-                db.query(Tag)
-                .filter(and_(Tag.slug == tag.slug, Tag.id != tag_id))
-                .first()
-            ):
-                tag.slug = f"{base_slug}-{counter}"
-                counter += 1
-
-        db.commit()
-        db.refresh(tag)
-
-        logger.debug(f"Tag updated successfully: {tag.id}")
-        return tag
-
-    @staticmethod
-    def delete(db: Session, tag_id: int) -> bool:
-        logger.debug(f"Deleting tag: {tag_id}")
-
-        tag = db.query(Tag).filter(Tag.id == tag_id).first()
-        if not tag:
-            logger.debug(f"Tag not found for deletion: {tag_id}")
-            return False
-
-        db.delete(tag)
-        db.commit()
-
-        logger.debug(f"Tag deleted successfully: {tag_id}")
-        return True
-
-    @staticmethod
-    def get_or_create(db: Session, name: str) -> Tag:
-        logger.debug(f"Get or create tag: {name}")
-
-        tag = TagCRUD.get_by_name(db, name)
-        if tag:
-            logger.debug(f"Tag already exists: {tag.id}")
-            return tag
-
-        return TagCRUD.create(db, TagCreate(name=name))
-
-
-class MediaTagCRUD:
-    @staticmethod
-    def create(
-        db: Session, media_tag_data: MediaTagCreate, media_type: MediaTypeEnum
-    ) -> MediaTag:
-        logger.debug(
-            f"Creating media-tag association - media: {media_tag_data.media_id}, "
-            f"tag: {media_tag_data.tag_id}, type: {media_type}"
-        )
-
-        media_tag = MediaTag(
-            media_id=media_tag_data.media_id,
-            tag_id=media_tag_data.tag_id,
-            media_type=media_type,
-        )
-
-        db.add(media_tag)
-        db.commit()
-        db.refresh(media_tag)
-
-        logger.debug(f"Media-tag association created successfully: {media_tag.id}")
-        return media_tag
-
-    @staticmethod
-    def get_tags_for_media(db: Session, media_id: int) -> List[Tag]:
-        logger.debug(f"Fetching tags for media: {media_id}")
-
-        tags = db.query(Tag).join(MediaTag).filter(MediaTag.media_id == media_id).all()
-
-        logger.debug(f"Found {len(tags)} tags for media")
-        return tags
-
-    @staticmethod
     def get_media_by_tag(
-        db: Session, tag_id: int, media_type: Optional[MediaTypeEnum] = None
+        self, db: Session, *, tag_id: int, media_type: Optional[MediaTypeEnum] = None
     ) -> List[int]:
-        logger.debug(f"Fetching media IDs for tag: {tag_id}, type: {media_type}")
-
+        """Get all media IDs for a tag, optionally filtered by type"""
+        logger.debug(f"Getting media for tag_id: {tag_id}, type: {media_type}")
         query = db.query(MediaTag.media_id).filter(MediaTag.tag_id == tag_id)
 
         if media_type:
             query = query.filter(MediaTag.media_type == media_type)
 
-        media_ids = [row[0] for row in query.all()]
+        return [row[0] for row in query.all()]
 
-        logger.debug(f"Found {len(media_ids)} media items for tag")
-        return media_ids
-
-    @staticmethod
-    def delete(db: Session, media_id: int, tag_id: int) -> bool:
-        logger.debug(
-            f"Deleting media-tag association - media: {media_id}, tag: {tag_id}"
-        )
-
-        media_tag = (
-            db.query(MediaTag)
-            .filter(and_(MediaTag.media_id == media_id, MediaTag.tag_id == tag_id))
-            .first()
-        )
-
-        if not media_tag:
-            logger.debug(f"Media-tag association not found for deletion")
-            return False
-
-        db.delete(media_tag)
-        db.commit()
-
-        logger.debug(f"Media-tag association deleted successfully")
-        return True
-
-    @staticmethod
-    def delete_all_for_media(db: Session, media_id: int) -> int:
-        logger.debug(f"Deleting all tags for media: {media_id}")
-
-        count = db.query(MediaTag).filter(MediaTag.media_id == media_id).delete()
-        db.commit()
-
-        logger.debug(f"Deleted {count} media-tag associations")
-        return count
-
-    @staticmethod
-    def exists(db: Session, media_id: int, tag_id: int) -> bool:
-        logger.debug(f"Checking media-tag existence - media: {media_id}, tag: {tag_id}")
-
-        exists = (
-            db.query(MediaTag)
-            .filter(and_(MediaTag.media_id == media_id, MediaTag.tag_id == tag_id))
-            .first()
-            is not None
-        )
-
-        logger.debug(f"Media-tag association exists: {exists}")
-        return exists
-
-    @staticmethod
-    def set_tags_for_media(
-        db: Session, media_id: int, media_type: MediaTypeEnum, tag_names: List[str]
+    def add_tags_to_media(
+        self,
+        db: Session,
+        *,
+        media_id: int,
+        media_type: MediaTypeEnum,
+        tag_names: List[str],
     ) -> List[Tag]:
-        logger.debug(f"Setting tags for media: {media_id}, tags: {tag_names}")
+        """Add tags to media item, creating tags if needed"""
+        if not tag_names:
+            return []
 
-        # Delete existing associations
-        MediaTagCRUD.delete_all_for_media(db, media_id)
+        logger.info(f"Adding {len(tag_names)} tags to media_id: {media_id}")
 
-        # Create new associations
+        # Remove duplicates and empty strings
+        tag_names = list(set(name.strip() for name in tag_names if name.strip()))
+
         tags = []
         for tag_name in tag_names:
-            tag = TagCRUD.get_or_create(db, tag_name.strip())
-            MediaTagCRUD.create(
-                db, MediaTagCreate(media_id=media_id, tag_id=tag.id), media_type
-            )
+            # Get or create tag
+            tag = self.get_or_create(db, name=tag_name)
             tags.append(tag)
 
-        logger.debug(f"Set {len(tags)} tags for media")
+            # Check if association already exists
+            existing = (
+                db.query(MediaTag)
+                .filter(MediaTag.media_id == media_id, MediaTag.tag_id == tag.id)
+                .first()
+            )
+
+            if not existing:
+                # Create association
+                media_tag = MediaTag(
+                    media_id=media_id, tag_id=tag.id, media_type=media_type
+                )
+                db.add(media_tag)
+                logger.debug(f"Associated tag '{tag.name}' with media_id: {media_id}")
+
+        db.commit()
+        logger.info(f"Successfully added {len(tags)} tags to media_id: {media_id}")
         return tags
+
+    def remove_tags_from_media(
+        self, db: Session, *, media_id: int, tag_ids: Optional[List[int]] = None
+    ):
+        """Remove tags from media item. If tag_ids is None, remove all tags"""
+        logger.info(f"Removing tags from media_id: {media_id}")
+
+        query = db.query(MediaTag).filter(MediaTag.media_id == media_id)
+
+        if tag_ids:
+            query = query.filter(MediaTag.tag_id.in_(tag_ids))
+
+        count = query.delete(synchronize_session=False)
+        db.commit()
+
+        logger.debug(f"Removed {count} tag associations from media_id: {media_id}")
+
+    def update_media_tags(
+        self,
+        db: Session,
+        *,
+        media_id: int,
+        media_type: MediaTypeEnum,
+        tag_names: List[str],
+    ) -> List[Tag]:
+        """Update tags for media item (remove old, add new)"""
+        logger.info(f"Updating tags for media_id: {media_id}")
+
+        # Remove all existing tags
+        self.remove_tags_from_media(db, media_id=media_id)
+
+        # Add new tags
+        return self.add_tags_to_media(
+            db, media_id=media_id, media_type=media_type, tag_names=tag_names
+        )
+
+
+tag_crud = CRUDTag(Tag)

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -6,34 +6,36 @@ from app.models import AgeRatingEnum, MediaStatusEnum
 from app.schemas.media import MediaBase, MediaResponse, MediaUpdate
 
 
-class AnimeBase(MediaBase):
-    """Base schema for anime"""
+class MangaBase(MediaBase):
+    """Base schema for manga"""
 
     original_title: Optional[str] = None
-    total_episodes: Optional[int] = None
-    studios: Optional[List[str]] = None
+    total_chapters: Optional[int] = None
+    total_volumes: Optional[int] = None
+    author: Optional[str] = None
     status: Optional[MediaStatusEnum] = None
     age_rating: Optional[AgeRatingEnum] = None
 
 
-class AnimeCreate(AnimeBase):
-    """Schema for creating anime"""
+class MangaCreate(MangaBase):
+    """Schema for creating manga"""
 
     pass
 
 
-class AnimeUpdate(MediaUpdate):
-    """Schema for updating anime"""
+class MangaUpdate(MediaUpdate):
+    """Schema for updating manga"""
 
     original_title: Optional[str] = None
-    total_episodes: Optional[int] = None
-    studios: Optional[List[str]] = None
+    total_chapters: Optional[int] = None
+    total_volumes: Optional[int] = None
+    author: Optional[str] = None
     status: Optional[MediaStatusEnum] = None
     age_rating: Optional[AgeRatingEnum] = None
 
 
-class AnimeResponse(AnimeBase):
-    """Schema for anime response"""
+class MangaResponse(MangaBase):
+    """Schema for manga response"""
 
     id: int
 

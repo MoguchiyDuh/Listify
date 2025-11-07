@@ -1,34 +1,44 @@
-from datetime import date, datetime
+from datetime import date
 from typing import List, Optional
 
+from pydantic import BaseModel, ConfigDict
+
 from app.models import MediaTypeEnum
-from pydantic import BaseModel, ConfigDict, Field
 
 
 class MediaBase(BaseModel):
-    title: str = Field(..., min_length=1, max_length=255)
+    """Base schema for media"""
+
+    title: str
     description: Optional[str] = None
     release_date: Optional[date] = None
-    image: Optional[str] = Field(None, max_length=500)
+    cover_image_url: Optional[str] = None
+    external_id: Optional[str] = None
+    external_source: Optional[str] = None
     is_custom: bool = False
+    tags: Optional[List[str]] = None
 
 
 class MediaCreate(MediaBase):
-    media_type: MediaTypeEnum
+    """Schema for creating media"""
+
+    pass
 
 
 class MediaUpdate(BaseModel):
-    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    """Schema for updating media"""
+
+    title: Optional[str] = None
     description: Optional[str] = None
     release_date: Optional[date] = None
-    image: Optional[str] = Field(None, max_length=500)
+    cover_image_url: Optional[str] = None
+    tags: Optional[List[str]] = None
 
 
 class MediaResponse(MediaBase):
+    """Schema for media response"""
+
     id: int
     media_type: MediaTypeEnum
-    created_at: datetime
-    updated_at: datetime
-    tags: List[str] = []
 
     model_config = ConfigDict(from_attributes=True)

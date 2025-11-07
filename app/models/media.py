@@ -1,68 +1,73 @@
-import enum
-from datetime import datetime, timezone
+from datetime import date
+from enum import Enum
 
-from app.core.database import Base
-from sqlalchemy import Boolean, Column, Date, DateTime, Enum, Integer, String
+from sqlalchemy import Boolean, Column, Date
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import Integer, String, Text
 from sqlalchemy.orm import relationship
 
+from app.core.database import Base
 
-class MediaTypeEnum(str, enum.Enum):
+
+class MediaTypeEnum(str, Enum):
     MOVIE = "movie"
     SERIES = "series"
     ANIME = "anime"
+    MANGA = "manga"
     BOOK = "book"
     GAME = "game"
 
 
-class StatusEnum(str, enum.Enum):
-    PLANNING = "planning"
-    ON_HOLD = "on_hold"
-    DROPPED = "dropped"
-    COMPLETED = "completed"
-    IN_PROGRESS = "in_progress"
-
-
-class PriorityEnum(str, enum.Enum):
-    NONE = "none"
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-
-
-class AnimeSeriesStatusEnum(str, enum.Enum):
+class MediaStatusEnum(str, Enum):
     AIRING = "airing"
     FINISHED = "finished"
     UPCOMING = "upcoming"
+    CANCELLED = "cancelled"
+
+
+class AgeRatingEnum(str, Enum):
+    G = "G"  # General Audiences
+    PG = "PG"  # Parental Guidance
+    PG_13 = "PG-13"  # Parents Strongly Cautioned
+    R = "R"  # Restricted
+    R_PLUS = "R+"  # Mild Nudity
+    RX = "Rx"  # Hentai
+    NC_17 = "NC-17"  # Adults Only
+    UNKNOWN = "Unknown"
 
 
 class Media(Base):
     __tablename__ = "media"
 
     id = Column(Integer, primary_key=True, index=True)
-    media_type = Column(Enum(MediaTypeEnum), nullable=False, index=True)
+    media_type = Column(SQLEnum(MediaTypeEnum), nullable=False, index=True)
+
+    # Common fields
     title = Column(String(255), nullable=False, index=True)
-    description = Column(String, nullable=True)
+    description = Column(Text, nullable=True)
     release_date = Column(Date, nullable=True)
-    image = Column(String(500), nullable=True)
-    is_custom = Column(Boolean, nullable=False, default=False)
-    created_at = Column(DateTime, default=datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(
-        DateTime,
-        default=datetime.now(timezone.utc),
-        onupdate=datetime.now(timezone.utc),
-        nullable=False,
-    )
+    cover_image_url = Column(String(512), nullable=True)
+
+    # External API tracking
+    external_id = Column(String(100), nullable=True, index=True)
+    external_source = Column(
+        String(50), nullable=True
+    )  # tmdb, jikan, igdb, openlibrary
+
+    # Custom entry flag
+    is_custom = Column(Boolean, default=False)
 
     # Polymorphic configuration
     __mapper_args__ = {
         "polymorphic_identity": "media",
         "polymorphic_on": media_type,
+        "with_polymorphic": "*",
     }
 
     # Relationships
-    user_media = relationship(
-        "UserMedia", back_populates="media", cascade="all, delete-orphan"
+    tracking_entries = relationship(
+        "Tracking", back_populates="media", cascade="all, delete-orphan"
     )
-
-    def __repr__(self):
-        return f"<Media(id={self.id}, title={self.title}, type={self.media_type})>"
+    tag_associations = relationship(
+        "MediaTag", back_populates="media", cascade="all, delete-orphan"
+    )

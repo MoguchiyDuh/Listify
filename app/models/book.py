@@ -8,7 +8,7 @@ class Book(Media):
 
     id = Column(Integer, ForeignKey("media.id"), primary_key=True)
     pages = Column(Integer, nullable=True)
-    author = Column(String(255), nullable=True)
+    author = Column(String(255), nullable=False)
     isbn = Column(String(20), nullable=True)
 
     __mapper_args__ = {
@@ -16,4 +16,4 @@ class Book(Media):
     }
 
     def __repr__(self):
-        return f"<Book(id={self.id}, title={self.title})>"
+        return f"<Book(id={self.id}:, title={self.title})>"

@@ -1,14 +1,13 @@
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Column, ForeignKey, Integer
 
-from .media import Media, MediaTypeEnum
+from app.models.media import Media, MediaTypeEnum
 
 
 class Movie(Media):
     __tablename__ = "movies"
 
     id = Column(Integer, ForeignKey("media.id"), primary_key=True)
-    runtime = Column(Integer, nullable=True)  # Minutes
-    director = Column(String(255), nullable=True)
+    runtime = Column(Integer, nullable=True)  # in minutes
 
     __mapper_args__ = {
         "polymorphic_identity": MediaTypeEnum.MOVIE,

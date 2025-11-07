@@ -1,144 +1,90 @@
 from typing import Optional
-from uuid import UUID
 
-from app.core import hash_password, setup_logger
-from app.models import User
-from app.schemas import UserCreate, UserUpdate
-from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-logger = setup_logger(__name__)
+from app.core.logger import setup_logger
+from app.core.security import hash_password, verify_password
+from app.crud.base import CRUDBase
+from app.models.user import User
+
+logger = setup_logger("crud.user")
 
 
-class UserCRUD:
-    @staticmethod
-    def create(db: Session, user_data: UserCreate) -> User:
-        logger.debug(f"Creating user: {user_data.username}")
+class CRUDUser(CRUDBase[User]):
+    """CRUD operations for users"""
 
-        user = User(
-            username=user_data.username,
-            email=user_data.email,
-            hashed_password=hash_password(user_data.password),
-        )
+    def get_by_email(self, db: Session, *, email: str) -> Optional[User]:
+        """Get user by email"""
+        logger.debug(f"Getting user by email: {email}")
+        return db.query(User).filter(User.email == email).first()
+
+    def get_by_username(self, db: Session, *, username: str) -> Optional[User]:
+        """Get user by username"""
+        logger.debug(f"Getting user by username: {username}")
+        return db.query(User).filter(User.username == username).first()
+
+    def create(self, db: Session, *, username: str, email: str, password: str) -> User:
+        """Create new user with hashed password"""
+        logger.info(f"Creating user: {username}")
+
+        hashed_password = hash_password(password)
+
+        user = User(username=username, email=email, hashed_password=hashed_password)
 
         db.add(user)
         db.commit()
         db.refresh(user)
 
-        logger.debug(f"User created successfully: {user.id}")
+        logger.debug(f"Created user with id: {user.id}")
         return user
 
-    @staticmethod
-    def get_by_id(db: Session, user_id: UUID) -> Optional[User]:
-        logger.debug(f"Fetching user by ID: {user_id}")
-        user = db.query(User).filter(User.id == user_id).first()
+    def update(
+        self,
+        db: Session,
+        *,
+        user: User,
+        username: Optional[str] = None,
+        email: Optional[str] = None,
+        password: Optional[str] = None,
+    ) -> User:
+        """Update user information"""
+        logger.info(f"Updating user with id: {user.id}")
 
-        if user:
-            logger.debug(f"User found: {user.username}")
-        else:
-            logger.debug(f"User not found: {user_id}")
+        if username:
+            user.username = username
+        if email:
+            user.email = email
+        if password:
+            user.hashed_password = hash_password(password)
 
-        return user
-
-    @staticmethod
-    def get_by_username(db: Session, username: str) -> Optional[User]:
-        logger.debug(f"Fetching user by username: {username}")
-        user = db.query(User).filter(User.username == username).first()
-
-        if user:
-            logger.debug(f"User found: {user.id}")
-        else:
-            logger.debug(f"User not found: {username}")
-
-        return user
-
-    @staticmethod
-    def get_by_email(db: Session, email: str) -> Optional[User]:
-        logger.debug(f"Fetching user by email: {email}")
-        user = db.query(User).filter(User.email == email).first()
-
-        if user:
-            logger.debug(f"User found: {user.id}")
-        else:
-            logger.debug(f"User not found: {email}")
-
-        return user
-
-    @staticmethod
-    def get_by_username_or_email(db: Session, identifier: str) -> Optional[User]:
-        logger.debug(f"Fetching user by username or email: {identifier}")
-        user = (
-            db.query(User)
-            .filter(or_(User.username == identifier, User.email == identifier))
-            .first()
-        )
-
-        if user:
-            logger.debug(f"User found: {user.id}")
-        else:
-            logger.debug(f"User not found: {identifier}")
-
-        return user
-
-    @staticmethod
-    def update(db: Session, user_id: UUID, user_data: UserUpdate) -> Optional[User]:
-        logger.debug(f"Updating user: {user_id}")
-
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user:
-            logger.debug(f"User not found for update: {user_id}")
-            return None
-
-        update_data = user_data.model_dump(exclude_unset=True)
-
-        if "password" in update_data:
-            update_data["hashed_password"] = hash_password(update_data.pop("password"))
-
-        for field, value in update_data.items():
-            setattr(user, field, value)
-
+        db.add(user)
         db.commit()
         db.refresh(user)
 
-        logger.debug(f"User updated successfully: {user.id}")
+        logger.debug(f"Updated user with id: {user.id}")
         return user
 
-    @staticmethod
-    def delete(db: Session, user_id: UUID) -> bool:
-        logger.debug(f"Deleting user: {user_id}")
+    def authenticate(
+        self, db: Session, *, username: str, password: str
+    ) -> Optional[User]:
+        """Authenticate user by username and password"""
+        logger.debug(f"Authenticating user: {username}")
 
-        user = db.query(User).filter(User.id == user_id).first()
+        user = self.get_by_username(db, username=username)
         if not user:
-            logger.debug(f"User not found for deletion: {user_id}")
-            return False
+            logger.warning(f"User not found: {username}")
+            return None
 
-        db.delete(user)
-        db.commit()
+        if not verify_password(password, user.hashed_password):
+            logger.warning(f"Invalid password for user: {username}")
+            return None
 
-        logger.debug(f"User deleted successfully: {user_id}")
+        logger.info(f"User authenticated successfully: {username}")
+        return user
+
+    def is_active(self, user: User) -> bool:
+        """Check if user is active (for future use)"""
         return True
 
-    @staticmethod
-    def exists(
-        db: Session, username: Optional[str] = None, email: Optional[str] = None
-    ) -> bool:
-        logger.debug(f"Checking user existence - username: {username}, email: {email}")
 
-        query = db.query(User)
-
-        if username and email:
-            exists = (
-                query.filter(
-                    or_(User.username == username, User.email == email)
-                ).first()
-                is not None
-            )
-        elif username:
-            exists = query.filter(User.username == username).first() is not None
-        elif email:
-            exists = query.filter(User.email == email).first() is not None
-        else:
-            exists = False
-
-        logger.debug(f"User exists: {exists}")
-        return exists
+user_crud = CRUDUser(User)

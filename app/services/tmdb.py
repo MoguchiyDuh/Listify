@@ -1,10 +1,14 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from app.core.config import settings
+from app.core.logger import setup_logger
+from app.models import MediaStatusEnum
 from app.schemas.movie import MovieCreate
 from app.schemas.series import SeriesCreate
 from app.services.base import BaseAPIService
+
+logger = setup_logger("tmdb")
 
 
 class TMDBService(BaseAPIService):
@@ -13,104 +17,108 @@ class TMDBService(BaseAPIService):
     def __init__(self):
         super().__init__(
             base_url="https://api.themoviedb.org/3",
-            api_key=settings.TMDB_API_KEY,
-            timeout=15,
+            headers=(
+                {"Authorization": f"Bearer {settings.TMDB_API_KEY}"}
+                if settings.TMDB_API_KEY
+                else {}
+            ),
         )
 
     def _build_params(self, **kwargs) -> dict:
         """Build params with API key."""
-        params = {"api_key": self.api_key, **kwargs}
+        params = {**kwargs}
         return {k: v for k, v in params.items() if v is not None}
 
-    async def search(self, query: str, limit: int = 10) -> List[dict]:
-        """Search for movies and TV shows."""
-        params = self._build_params(query=query)
-        data = await self._get("search/multi", params)
+    async def search(
+        self,
+        query: str,
+        limit: int = 10,
+        media_type: Literal["movie", "tv", "multi"] = "multi",
+    ) -> List[dict]:
+        """Search movies or TV shows."""
+        logger.info(f"Searching TMDB {media_type} for: {query} (limit: {limit})")
+        params = self._build_params(
+            query=query, include_adult="true", append_to_response="credits"
+        )
+        data = await self._get(f"search/{media_type}", params)
+        results = data.get("results", [])[:limit] if data else []
+        logger.debug(f"TMDB search returned {len(results)} results")
+        return results
 
-        if not data or "results" not in data:
-            return []
-
-        return [
-            r for r in data["results"][:limit] if r.get("media_type") in ["movie", "tv"]
-        ]
-
-    async def get_details(self, media_id: str) -> Optional[dict]:
-        """Get movie details."""
-        params = self._build_params(append_to_response="credits")
-        return await self._get(f"movie/{media_id}", params)
-
-    async def search_movies(self, query: str, limit: int = 10) -> List[dict]:
-        """Search movies."""
-        params = self._build_params(query=query)
-        data = await self._get("search/movie", params)
-        return data.get("results", [])[:limit] if data else []
-
-    async def search_tv(self, query: str, limit: int = 10) -> List[dict]:
-        """Search TV shows."""
-        params = self._build_params(query=query)
-        data = await self._get("search/tv", params)
-        return data.get("results", [])[:limit] if data else []
-
-    async def get_movie_details(self, movie_id: str) -> Optional[dict]:
-        """Get detailed movie info."""
-        params = self._build_params(append_to_response="credits")
-        return await self._get(f"movie/{movie_id}", params)
-
-    async def get_tv_details(self, tv_id: str) -> Optional[dict]:
-        """Get detailed TV show info."""
-        params = self._build_params(append_to_response="credits")
-        return await self._get(f"tv/{tv_id}", params)
+    async def get_by_id(
+        self,
+        media_id: str,
+        media_type: Literal["movie", "tv"] = "movie",
+    ) -> Optional[dict]:
+        """Get movie or TV show details."""
+        logger.info(f"Fetching TMDB {media_type} by ID: {media_id}")
+        params = self._build_params(include_adult="true", append_to_response="credits")
+        data = await self._get(f"{media_type}/{media_id}", params)
+        if data:
+            title = data.get("title") if media_type == "movie" else data.get("name")
+            logger.debug(f"Found {media_type}: {title or 'Unknown'}")
+        else:
+            logger.warning(f"{media_type.upper()} not found with ID: {media_id}")
+        return data
 
     def to_movie_create(self, tmdb_data: dict) -> MovieCreate:
         """Convert TMDB movie data to MovieCreate schema."""
-        director = None
-        if "credits" in tmdb_data and "crew" in tmdb_data["credits"]:
-            directors = [
-                c["name"]
-                for c in tmdb_data["credits"]["crew"]
-                if c["job"] == "Director"
-            ]
-            director = directors[0] if directors else None
+        release_date = None
+        if tmdb_data.get("release_date"):
+            try:
+                release_date = datetime.strptime(
+                    tmdb_data["release_date"], "%Y-%m-%d"
+                ).date()
+            except (ValueError, TypeError):
+                pass
+
+        logger.debug(
+            f"Converting TMDB movie data for: {tmdb_data.get('title', 'Unknown')}"
+        )
 
         return MovieCreate(
             title=tmdb_data.get("title", "Unknown"),
             description=tmdb_data.get("overview"),
-            release_date=(
-                datetime.strptime(tmdb_data["release_date"], "%Y-%m-%d").date()
-                if tmdb_data.get("release_date")
-                else None
-            ),
-            image=self.get_image_url(tmdb_data.get("poster_path")),
+            release_date=release_date,
+            cover_image_url=self.get_image_url(tmdb_data.get("poster_path")),
+            external_id=str(tmdb_data.get("id")),
+            external_source="tmdb",
             runtime=tmdb_data.get("runtime"),
-            director=director,
-            is_custom=False,
         )
 
     def to_series_create(self, tmdb_data: dict) -> SeriesCreate:
         """Convert TMDB TV data to SeriesCreate schema."""
-        from app.models.media import AnimeSeriesStatusEnum
-
         status_map = {
-            "Ended": AnimeSeriesStatusEnum.FINISHED,
-            "Returning Series": AnimeSeriesStatusEnum.AIRING,
-            "Canceled": AnimeSeriesStatusEnum.FINISHED,
+            "Ended": MediaStatusEnum.FINISHED,
+            "Returning Series": MediaStatusEnum.AIRING,
+            "Canceled": MediaStatusEnum.CANCELLED,
+            "Planned": MediaStatusEnum.UPCOMING,
+            "In Production": MediaStatusEnum.AIRING,
         }
+
+        first_air_date = None
+        if tmdb_data.get("first_air_date"):
+            try:
+                first_air_date = datetime.strptime(
+                    tmdb_data["first_air_date"], "%Y-%m-%d"
+                ).date()
+            except (ValueError, TypeError):
+                pass
+
+        logger.debug(
+            f"Converting TMDB series data for: {tmdb_data.get('name', 'Unknown')}"
+        )
 
         return SeriesCreate(
             title=tmdb_data.get("name", "Unknown"),
             description=tmdb_data.get("overview"),
-            release_date=(
-                datetime.strptime(tmdb_data["first_air_date"], "%Y-%m-%d").date()
-                if tmdb_data.get("first_air_date")
-                else None
-            ),
-            image=self.get_image_url(tmdb_data.get("poster_path")),
+            release_date=first_air_date,
+            cover_image_url=self.get_image_url(tmdb_data.get("poster_path")),
+            external_id=str(tmdb_data.get("id")),
+            external_source="tmdb",
             total_episodes=tmdb_data.get("number_of_episodes"),
             seasons=tmdb_data.get("number_of_seasons"),
-            status=status_map.get(
-                tmdb_data.get("status"), AnimeSeriesStatusEnum.FINISHED
-            ),
-            is_custom=False,
+            status=status_map.get(tmdb_data.get("status"), MediaStatusEnum.FINISHED),
         )
 
     @staticmethod
