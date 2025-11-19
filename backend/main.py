@@ -17,6 +17,13 @@ async def lifespan(app: FastAPI):
     """Lifespan event handler"""
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
 
+    # Create required directories
+    static_dir = Path(__file__).parent.parent / "static"
+    images_dir = static_dir / "images"
+    static_dir.mkdir(exist_ok=True)
+    images_dir.mkdir(exist_ok=True)
+    logger.debug(f"Ensured directories exist: {static_dir}, {images_dir}")
+
     # Database tables should be created via Alembic migrations
     # Run: alembic upgrade head
     logger.info("Application started - ensure database migrations are up to date")
@@ -77,6 +84,6 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=8000,
-        reload=True,
+        reload=settings.DEBUG,
         log_level="info" if not settings.DEBUG else "debug",
     )
