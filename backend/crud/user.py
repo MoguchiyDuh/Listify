@@ -1,8 +1,10 @@
 from typing import Optional
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.security import hash_password, verify_password
 from models import User
-from sqlalchemy.orm import Session
 
 from .base import CRUDBase, logger
 
@@ -12,17 +14,23 @@ logger = logger.getChild("user")
 class CRUDUser(CRUDBase[User]):
     """CRUD operations for users"""
 
-    def get_by_email(self, db: Session, *, email: str) -> Optional[User]:
+    async def get_by_email(self, db: AsyncSession, *, email: str) -> Optional[User]:
         """Get user by email"""
         logger.debug(f"Getting user by email: {email}")
-        return db.query(User).filter(User.email == email).first()
+        result = await db.execute(select(User).filter(User.email == email))
+        return result.scalar_one_or_none()
 
-    def get_by_username(self, db: Session, *, username: str) -> Optional[User]:
+    async def get_by_username(
+        self, db: AsyncSession, *, username: str
+    ) -> Optional[User]:
         """Get user by username"""
         logger.debug(f"Getting user by username: {username}")
-        return db.query(User).filter(User.username == username).first()
+        result = await db.execute(select(User).filter(User.username == username))
+        return result.scalar_one_or_none()
 
-    def create(self, db: Session, *, username: str, email: str, password: str) -> User:
+    async def create(
+        self, db: AsyncSession, *, username: str, email: str, password: str
+    ) -> User:
         """Create new user with hashed password"""
         logger.info(f"Creating user: {username}")
 
@@ -31,15 +39,15 @@ class CRUDUser(CRUDBase[User]):
         user = User(username=username, email=email, hashed_password=hashed_password)
 
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        await db.commit()
+        await db.refresh(user)
 
         logger.debug(f"Created user with id: {user.id}")
         return user
 
-    def update(
+    async def update(
         self,
-        db: Session,
+        db: AsyncSession,
         *,
         user: User,
         username: Optional[str] = None,
@@ -57,19 +65,19 @@ class CRUDUser(CRUDBase[User]):
             user.hashed_password = hash_password(password)
 
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        await db.commit()
+        await db.refresh(user)
 
         logger.debug(f"Updated user with id: {user.id}")
         return user
 
-    def authenticate(
-        self, db: Session, *, username: str, password: str
+    async def authenticate(
+        self, db: AsyncSession, *, username: str, password: str
     ) -> Optional[User]:
         """Authenticate user by username and password"""
         logger.debug(f"Authenticating user: {username}")
 
-        user = self.get_by_username(db, username=username)
+        user = await self.get_by_username(db, username=username)
         if not user:
             logger.warning(f"User not found: {username}")
             return None

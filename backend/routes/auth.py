@@ -1,13 +1,15 @@
 from datetime import timedelta
 
+from fastapi import APIRouter, Depends, Response, status
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.config import settings
 from core.database import get_db
+from core.exceptions import AlreadyExists, Unauthorized
 from crud import user_crud
-from fastapi import APIRouter, Depends, HTTPException, Response, status
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from models import User
 from schemas import Token, UserCreate, UserLogin, UserResponse
-from sqlalchemy.orm import Session
 
 from .base import logger
 from .deps import create_access_token, get_current_user
@@ -21,25 +23,21 @@ basic_security = HTTPBasic()
 @router.post(
     "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
 )
-def register(user_data: UserCreate, response: Response, db: Session = Depends(get_db)):
+async def register(
+    user_data: UserCreate, response: Response, db: AsyncSession = Depends(get_db)
+):
     """Register a new user and set auth cookie"""
     logger.info(f"Registration attempt for username: {user_data.username}")
 
-    if user_crud.get_by_username(db, username=user_data.username):
+    if await user_crud.get_by_username(db, username=user_data.username):
         logger.warning(f"Username already exists: {user_data.username}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered",
-        )
+        raise AlreadyExists("Username", user_data.username)
 
-    if user_crud.get_by_email(db, email=user_data.email):
+    if await user_crud.get_by_email(db, email=user_data.email):
         logger.warning(f"Email already exists: {user_data.email}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
-        )
+        raise AlreadyExists("Email", user_data.email)
 
-    user = user_crud.create(
+    user = await user_crud.create(
         db,
         username=user_data.username,
         email=user_data.email,
@@ -67,21 +65,19 @@ def register(user_data: UserCreate, response: Response, db: Session = Depends(ge
 
 
 @router.post("/login", response_model=Token)
-def login(user_data: UserLogin, response: Response, db: Session = Depends(get_db)):
+async def login(
+    user_data: UserLogin, response: Response, db: AsyncSession = Depends(get_db)
+):
     """Login and get access token in cookie"""
     logger.info(f"Login attempt for username: {user_data.username}")
 
-    user = user_crud.authenticate(
+    user = await user_crud.authenticate(
         db, username=user_data.username, password=user_data.password
     )
 
     if not user:
         logger.warning(f"Failed login attempt for username: {user_data.username}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise Unauthorized("Incorrect username or password")
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -104,25 +100,21 @@ def login(user_data: UserLogin, response: Response, db: Session = Depends(get_db
 
 
 @router.post("/token", response_model=Token)
-def login_basic(
+async def login_basic(
     response: Response,
     credentials: HTTPBasicCredentials = Depends(basic_security),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Login using HTTP Basic Auth (alternative endpoint)"""
     logger.info(f"Basic auth login attempt for username: {credentials.username}")
 
-    user = user_crud.authenticate(
+    user = await user_crud.authenticate(
         db, username=credentials.username, password=credentials.password
     )
 
     if not user:
         logger.warning(f"Failed basic auth for username: {credentials.username}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Basic"},
-        )
+        raise Unauthorized("Incorrect username or password")
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(

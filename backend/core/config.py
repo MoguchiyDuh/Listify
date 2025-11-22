@@ -22,7 +22,9 @@ class Settings(BaseSettings):
 
     # Cookie Security
     COOKIE_SECURE: bool = False
-    COOKIE_DOMAIN: Optional[str] = None  # None = same domain, "localhost" for local dev, IP for network access
+    COOKIE_DOMAIN: Optional[str] = (
+        None  # None = same domain, "localhost" for local dev, IP for network access
+    )
 
     # API Keys
     TMDB_API_KEY: Optional[str] = None

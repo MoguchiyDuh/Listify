@@ -1,0 +1,200 @@
+{
+  "url": "https://openlibrary.org/books/OL17952222M/Dune",
+  "key": "/books/OL17952222M",
+  "title": "Dune",
+  "authors": [
+    {
+      "url": "https://openlibrary.org/authors/OL79034A/Frank_Herbert",
+      "name": "Frank Herbert"
+    }
+  ],
+  "number_of_pages": 528,
+  "pagination": "528 p. :",
+  "by_statement": "Frank Herbert.",
+  "identifiers": {
+    "librarything": ["4041453"],
+    "goodreads": ["104"],
+    "isbn_10": ["0441013597"],
+    "lccn": ["2006274831", "65022547"],
+    "openlibrary": ["OL17952222M"]
+  },
+  "classifications": {
+    "lc_classifications": [
+      "PS3558.E63 D8 2005",
+      "PS3558.E63D8 2005",
+      "PZ4.H5356 Dt",
+      "PS3558.E63 Dt",
+      "PS3558.E63 D8 1965"
+    ],
+    "dewey_decimal_class": ["813/.54"]
+  },
+  "publishers": [
+    {
+      "name": "Ace Books"
+    }
+  ],
+  "publish_places": [
+    {
+      "name": "New York"
+    }
+  ],
+  "publish_date": "2005",
+  "subjects": [
+    {
+      "name": "Dune (Imaginary place)",
+      "url": "https://openlibrary.org/subjects/dune_(imaginary_place)"
+    },
+    {
+      "name": "Fiction",
+      "url": "https://openlibrary.org/subjects/fiction"
+    },
+    {
+      "name": "Fiction, science fiction, general",
+      "url": "https://openlibrary.org/subjects/fiction,_science_fiction,_general"
+    },
+    {
+      "name": "Dune (imaginary place), fiction",
+      "url": "https://openlibrary.org/subjects/dune_(imaginary_place),_fiction"
+    },
+    {
+      "name": "New York Times reviewed",
+      "url": "https://openlibrary.org/subjects/new_york_times_reviewed"
+    },
+    {
+      "name": "Science fiction",
+      "url": "https://openlibrary.org/subjects/science_fiction"
+    },
+    {
+      "name": "Science-fiction",
+      "url": "https://openlibrary.org/subjects/science-fiction"
+    },
+    {
+      "name": "American literature",
+      "url": "https://openlibrary.org/subjects/american_literature"
+    },
+    {
+      "name": "nyt:mass-market-monthly=2021-11-07",
+      "url": "https://openlibrary.org/subjects/nyt:mass-market-monthly=2021-11-07"
+    },
+    {
+      "name": "New York Times bestseller",
+      "url": "https://openlibrary.org/subjects/new_york_times_bestseller"
+    },
+    {
+      "name": "award:nebula_award=novel",
+      "url": "https://openlibrary.org/subjects/award:nebula_award=novel"
+    },
+    {
+      "name": "nyt:trade-fiction-paperback=2021-11-07",
+      "url": "https://openlibrary.org/subjects/nyt:trade-fiction-paperback=2021-11-07"
+    },
+    {
+      "name": "Hugo Award Winner",
+      "url": "https://openlibrary.org/subjects/hugo_award_winner"
+    },
+    {
+      "name": "award:hugo_award=1966",
+      "url": "https://openlibrary.org/subjects/award:hugo_award=1966"
+    },
+    {
+      "name": "award:hugo_award=novel",
+      "url": "https://openlibrary.org/subjects/award:hugo_award=novel"
+    },
+    {
+      "name": "American Science fiction",
+      "url": "https://openlibrary.org/subjects/american_science_fiction"
+    },
+    {
+      "name": "Long Now Manual for Civilization",
+      "url": "https://openlibrary.org/subjects/long_now_manual_for_civilization"
+    },
+    {
+      "name": "Ecology",
+      "url": "https://openlibrary.org/subjects/ecology"
+    },
+    {
+      "name": "Fantasy fiction",
+      "url": "https://openlibrary.org/subjects/fantasy_fiction"
+    }
+  ],
+  "notes": "\"With a new afterword by Brian Herbert\"-cover.",
+  "table_of_contents": [
+    {
+      "level": 1,
+      "label": "Book I",
+      "title": "DUNE",
+      "pagenum": "1"
+    },
+    {
+      "level": 1,
+      "label": "Book II",
+      "title": "MUAD'DIB",
+      "pagenum": "197"
+    },
+    {
+      "level": 1,
+      "label": "Book III",
+      "title": "THE PROPHET",
+      "pagenum": "353"
+    },
+    {
+      "level": 1,
+      "label": "Appendix I: The Ecology of Dune",
+      "title": "",
+      "pagenum": "477"
+    },
+    {
+      "level": 1,
+      "label": "Appendix II: The Religion of Dune",
+      "title": "",
+      "pagenum": "484"
+    },
+    {
+      "level": 1,
+      "label": "Appendix III: Report on Bene Gesserit",
+      "title": "Motives and Purposes",
+      "pagenum": "492"
+    },
+    {
+      "level": 1,
+      "label": "Appendix IV: The Almanak en-Ashraf",
+      "title": "(Selected Excerpts of the Noble Houses)",
+      "pagenum": "495"
+    },
+    {
+      "level": 1,
+      "label": "Terminology of the Imperium",
+      "title": "",
+      "pagenum": "497"
+    },
+    {
+      "level": 1,
+      "label": "Map",
+      "title": "",
+      "pagenum": "518"
+    }
+  ],
+  "links": [
+    {
+      "title": "New York Times review",
+      "url": "http://www.nytimes.com/1999/11/28/books/science-fiction.html"
+    },
+    {
+      "title": "New York Times review",
+      "url": "https://www.nytimes.com/1985/01/06/books/paperback-best-sellers-jan-6-1985fiction-1.html"
+    }
+  ],
+  "ebooks": [
+    {
+      "preview_url": "https://archive.org/details/dune0000herb_a7n1",
+      "availability": "restricted",
+      "formats": {}
+    }
+  ],
+  "cover": {
+    "small": "https://covers.openlibrary.org/b/id/14856017-S.jpg",
+    "medium": "https://covers.openlibrary.org/b/id/14856017-M.jpg",
+    "large": "https://covers.openlibrary.org/b/id/14856017-L.jpg"
+  }
+}
+

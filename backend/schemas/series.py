@@ -1,7 +1,8 @@
 from typing import Optional
 
-from models import MediaStatusEnum, MediaTypeEnum
 from pydantic import ConfigDict
+
+from models import MediaStatusEnum
 
 from .media import MediaBase, MediaCreate, MediaResponse, MediaUpdate
 
@@ -12,6 +13,7 @@ class SeriesBase(MediaBase):
     total_episodes: Optional[int] = None
     seasons: Optional[int] = None
     status: Optional[MediaStatusEnum] = None
+    directors: Optional[list] = None
 
 
 class SeriesCreate(MediaCreate):
@@ -20,6 +22,7 @@ class SeriesCreate(MediaCreate):
     total_episodes: Optional[int] = None
     seasons: Optional[int] = None
     status: Optional[MediaStatusEnum] = None
+    directors: Optional[list] = None
 
 
 class SeriesUpdate(MediaUpdate):
@@ -28,6 +31,7 @@ class SeriesUpdate(MediaUpdate):
     total_episodes: Optional[int] = None
     seasons: Optional[int] = None
     status: Optional[MediaStatusEnum] = None
+    directors: Optional[list] = None
 
 
 class SeriesResponse(MediaResponse):
@@ -36,5 +40,6 @@ class SeriesResponse(MediaResponse):
     total_episodes: Optional[int] = None
     seasons: Optional[int] = None
     status: Optional[MediaStatusEnum] = None
+    directors: Optional[list] = None
 
     model_config = ConfigDict(from_attributes=True)

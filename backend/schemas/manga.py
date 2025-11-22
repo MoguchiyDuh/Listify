@@ -1,7 +1,8 @@
 from typing import Optional
 
-from models import AgeRatingEnum, MediaStatusEnum
 from pydantic import ConfigDict
+
+from models import AgeRatingEnum, MediaStatusEnum
 
 from .media import MediaBase, MediaCreate, MediaResponse, MediaUpdate
 
@@ -12,7 +13,7 @@ class MangaBase(MediaBase):
     original_title: Optional[str] = None
     total_chapters: Optional[int] = None
     total_volumes: Optional[int] = None
-    author: Optional[str] = None
+    authors: Optional[list] = None
     status: Optional[MediaStatusEnum] = None
     age_rating: Optional[AgeRatingEnum] = None
 
@@ -23,7 +24,7 @@ class MangaCreate(MediaCreate):
     original_title: Optional[str] = None
     total_chapters: Optional[int] = None
     total_volumes: Optional[int] = None
-    author: Optional[str] = None
+    authors: Optional[list] = None
     status: Optional[MediaStatusEnum] = None
     age_rating: Optional[AgeRatingEnum] = None
 
@@ -34,7 +35,7 @@ class MangaUpdate(MediaUpdate):
     original_title: Optional[str] = None
     total_chapters: Optional[int] = None
     total_volumes: Optional[int] = None
-    author: Optional[str] = None
+    authors: Optional[list] = None
     status: Optional[MediaStatusEnum] = None
     age_rating: Optional[AgeRatingEnum] = None
 
@@ -45,7 +46,7 @@ class MangaResponse(MediaResponse):
     original_title: Optional[str] = None
     total_chapters: Optional[int] = None
     total_volumes: Optional[int] = None
-    author: Optional[str] = None
+    authors: Optional[list] = None
     status: Optional[MediaStatusEnum] = None
     age_rating: Optional[AgeRatingEnum] = None
 

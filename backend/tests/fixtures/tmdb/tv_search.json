@@ -1,0 +1,51 @@
+[
+  {
+    "adult": false,
+    "backdrop_path": "/63FA8vwSZnXkGxedrDQwni4JuZN.jpg",
+    "genre_ids": [18, 80],
+    "id": 1396,
+    "origin_country": ["US"],
+    "original_language": "en",
+    "original_name": "Breaking Bad",
+    "overview": "Walter White, a New Mexico chemistry teacher, is diagnosed with Stage III cancer and given a prognosis of only two years left to live. He becomes filled with a sense of fearlessness and an unrelenting desire to secure his family's financial future at any cost as he enters the dangerous world of drugs and crime.",
+    "popularity": 129.3351,
+    "poster_path": "/ztkUQFLlC19CCMYHW9o1zWhJRNq.jpg",
+    "first_air_date": "2008-01-20",
+    "name": "Breaking Bad",
+    "vote_average": 8.935,
+    "vote_count": 16548
+  },
+  {
+    "adult": false,
+    "backdrop_path": "/pXdkJvhBcPf8oEj831ASMkLPXKT.jpg",
+    "genre_ids": [16, 80, 35, 10751],
+    "id": 302540,
+    "origin_country": ["US"],
+    "original_language": "en",
+    "original_name": "The Bad Guys: Breaking In",
+    "overview": "How did the Bad Guys break into the bad guy business in the first place? Find out in this hilarious prequel series set before the hit films.",
+    "popularity": 10.9815,
+    "poster_path": "/12ybD4BvgSpmhSjknFPvf1Nu7CC.jpg",
+    "first_air_date": "2025-11-06",
+    "name": "The Bad Guys: Breaking In",
+    "vote_average": 6.692,
+    "vote_count": 13
+  },
+  {
+    "adult": false,
+    "backdrop_path": null,
+    "genre_ids": [18, 9648],
+    "id": 232533,
+    "origin_country": ["CN"],
+    "original_language": "zh",
+    "original_name": "绝命卦师",
+    "overview": "During the Ming Dynasty, the emperor sets out for Xinjiang to advocate peace. Shortly after his absence, mysterious occurrences plague the palace and Daoist Tian Mu Tong is called to cast out demons. Together with eunuch Xiao Mo Gu and Jin Yi Wei leader Yun Xiang Rong, Mu Tong uncovers deep dark secrets and conspiracies hidden within conspiracies.",
+    "popularity": 0.8094,
+    "poster_path": "/n8dKkbPkdEPFCFmjNvrUl1gUAYr.jpg",
+    "first_air_date": "2016-04-11",
+    "name": "Breaking Bad Fortune Teller",
+    "vote_average": 7.5,
+    "vote_count": 1
+  }
+]
+

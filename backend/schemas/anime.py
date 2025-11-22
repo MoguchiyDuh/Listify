@@ -1,7 +1,8 @@
-from typing import List, Optional
+from typing import Optional
+
+from pydantic import ConfigDict
 
 from models import AgeRatingEnum, MediaStatusEnum
-from pydantic import ConfigDict
 
 from .media import MediaBase, MediaCreate, MediaResponse, MediaUpdate
 
@@ -11,7 +12,7 @@ class AnimeBase(MediaBase):
 
     original_title: Optional[str] = None
     total_episodes: Optional[int] = None
-    studios: Optional[List[str]] = None
+    studios: Optional[list] = None
     status: Optional[MediaStatusEnum] = None
     age_rating: Optional[AgeRatingEnum] = None
 
@@ -21,7 +22,7 @@ class AnimeCreate(MediaCreate):
 
     original_title: Optional[str] = None
     total_episodes: Optional[int] = None
-    studios: Optional[List[str]] = None
+    studios: Optional[list] = None
     status: Optional[MediaStatusEnum] = None
     age_rating: Optional[AgeRatingEnum] = None
 
@@ -31,7 +32,7 @@ class AnimeUpdate(MediaUpdate):
 
     original_title: Optional[str] = None
     total_episodes: Optional[int] = None
-    studios: Optional[List[str]] = None
+    studios: Optional[list] = None
     status: Optional[MediaStatusEnum] = None
     age_rating: Optional[AgeRatingEnum] = None
 
@@ -41,7 +42,7 @@ class AnimeResponse(MediaResponse):
 
     original_title: Optional[str] = None
     total_episodes: Optional[int] = None
-    studios: Optional[List[str]] = None
+    studios: Optional[list] = None
     status: Optional[MediaStatusEnum] = None
     age_rating: Optional[AgeRatingEnum] = None
 

@@ -103,7 +103,7 @@ class JikanService(BaseAPIService):
             external_id=str(jikan_data.get("mal_id")),
             external_source="jikan",
             total_episodes=jikan_data.get("episodes"),
-            studios=studios,
+            studios=studios if studios else None,
             status=status_map.get(jikan_data.get("status"), MediaStatusEnum.FINISHED),
             age_rating=age_rating,
             tags=tags,
@@ -163,7 +163,7 @@ class JikanService(BaseAPIService):
             external_source="jikan",
             total_chapters=jikan_data.get("chapters"),
             total_volumes=jikan_data.get("volumes"),
-            authors=authors,
+            authors=authors if authors else None,
             status=status_map.get(jikan_data.get("status"), MediaStatusEnum.FINISHED),
             tags=tags,
         )

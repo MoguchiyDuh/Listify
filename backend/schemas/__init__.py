@@ -6,8 +6,7 @@ from .media import MediaBase, MediaCreate, MediaResponse, MediaUpdate
 from .movie import MovieBase, MovieCreate, MovieResponse, MovieUpdate
 from .series import SeriesBase, SeriesCreate, SeriesResponse, SeriesUpdate
 from .token import Token, TokenData
-from .tracking import (TrackingBase, TrackingCreate, TrackingResponse,
-                       TrackingUpdate)
+from .tracking import TrackingBase, TrackingCreate, TrackingResponse, TrackingUpdate
 from .user import UserBase, UserCreate, UserLogin, UserResponse, UserUpdate
 
 __all__ = [

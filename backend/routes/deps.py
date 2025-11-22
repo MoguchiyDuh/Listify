@@ -1,14 +1,16 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from core.config import settings
-from core.database import get_db
-from crud import user_crud
-from fastapi import Cookie, Depends, HTTPException, status
+from fastapi import Cookie, Depends, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.config import settings
+from core.database import get_db
+from core.exceptions import Unauthorized
+from crud import user_crud
 from models import User
-from sqlalchemy.orm import Session
 
 from .base import logger
 
@@ -46,17 +48,13 @@ def decode_token(token: str) -> dict:
         return payload
     except JWTError as e:
         logger.warning(f"Failed to decode token: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise Unauthorized("Could not validate credentials")
 
 
 async def get_current_user(
     access_token: Optional[str] = Cookie(None),
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ) -> User:
     """Get current authenticated user from cookie or bearer token"""
     # Try to get token from cookie first, then from bearer
@@ -66,29 +64,19 @@ async def get_current_user(
 
     if not token:
         logger.warning("No token provided in cookie or header")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise Unauthorized("Not authenticated")
 
     payload = decode_token(token)
     username: str = payload.get("sub")
 
     if username is None:
         logger.warning("Token payload missing 'sub' field")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-        )
+        raise Unauthorized("Could not validate credentials")
 
-    user = user_crud.get_by_username(db, username=username)
+    user = await user_crud.get_by_username(db, username=username)
     if user is None:
         logger.warning(f"User not found: {username}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
-        )
+        raise Unauthorized("User not found")
 
     logger.debug(f"Authenticated user: {username}")
     return user

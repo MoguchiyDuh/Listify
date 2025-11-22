@@ -75,6 +75,16 @@ class TMDBService(BaseAPIService):
             f"Converting TMDB movie data for: {tmdb_data.get('title', 'Unknown')}"
         )
 
+        # Extract directors
+        directors = []
+        if "credits" in tmdb_data and tmdb_data.get("credits").get("crew"):
+            directors = {
+                a.get("name")
+                for a in tmdb_data["credits"]["crew"]
+                if a.get("known_for_department") == "Directing"
+            }
+            directors = list(directors)
+
         # Extract genres as tags
         tags = []
         if tmdb_data.get("genres"):
@@ -88,6 +98,7 @@ class TMDBService(BaseAPIService):
             external_id=str(tmdb_data.get("id")),
             external_source="tmdb",
             runtime=tmdb_data.get("runtime"),
+            directors=directors if directors else None,
             tags=tags if tags else None,
         )
 
@@ -114,6 +125,16 @@ class TMDBService(BaseAPIService):
             f"Converting TMDB series data for: {tmdb_data.get('name', 'Unknown')}"
         )
 
+        # Extract directors
+        directors = []
+        if "credits" in tmdb_data and tmdb_data.get("credits").get("crew"):
+            directors = {
+                a.get("name")
+                for a in tmdb_data["credits"]["crew"]
+                if a.get("known_for_department") == "Directing"
+            }
+            directors = list(directors)
+
         # Extract genres as tags
         tags = []
         if tmdb_data.get("genres"):
@@ -129,6 +150,7 @@ class TMDBService(BaseAPIService):
             total_episodes=tmdb_data.get("number_of_episodes"),
             seasons=tmdb_data.get("number_of_seasons"),
             status=status_map.get(tmdb_data.get("status"), MediaStatusEnum.FINISHED),
+            directors=directors if directors else None,
             tags=tags if tags else None,
         )
 

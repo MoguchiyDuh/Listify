@@ -2,11 +2,15 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import uvicorn
-from core.config import settings
-from core.logger import setup_logger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+
+from core.config import settings
+from core.exceptions import ListifyException
+from core.logger import setup_logger
+from fastapi import Request
+from fastapi.responses import JSONResponse
 from routes import auth, media, search, tracking
 
 logger = setup_logger("main")
@@ -39,6 +43,16 @@ app = FastAPI(
     debug=settings.DEBUG,
     lifespan=lifespan,
 )
+
+
+# Exception handlers
+@app.exception_handler(ListifyException)
+async def listify_exception_handler(request: Request, exc: ListifyException):
+    """Handle custom Listify exceptions"""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
 
 # CORS middleware
 app.add_middleware(

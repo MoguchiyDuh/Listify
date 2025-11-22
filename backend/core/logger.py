@@ -1,7 +1,7 @@
 import logging
 import sys
-from pathlib import Path
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 from colorama import Fore, Style, init
 
@@ -55,16 +55,13 @@ def setup_logger(name: str, debug: bool = settings.DEBUG) -> logging.Logger:
 
     log_file = log_dir / f"{name}.log"
     file_handler = RotatingFileHandler(
-        log_file,
-        maxBytes=5 * 1024 * 1024,  # 5MB
-        backupCount=10,
-        encoding="utf-8"
+        log_file, maxBytes=5 * 1024 * 1024, backupCount=10, encoding="utf-8"  # 5MB
     )
     file_handler.setLevel(level)
 
     file_formatter = logging.Formatter(
         fmt="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)

@@ -1,7 +1,15 @@
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, Query
+
+from core.exceptions import NotFound
 from models import User
-from schemas import (AnimeCreate, BookCreate, GameCreate, MangaCreate,
-                     MovieCreate, SeriesCreate)
+from schemas import (
+    AnimeCreate,
+    BookCreate,
+    GameCreate,
+    MangaCreate,
+    MovieCreate,
+    SeriesCreate,
+)
 from services import IGDBService, JikanService, OpenLibraryService, TMDBService
 
 from .base import logger
@@ -114,9 +122,7 @@ async def get_movie_details(
         result = await service.get_by_id(movie_id, media_type="movie")
 
     if not result:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found"
-        )
+        raise NotFound("Movie", movie_id)
 
     return {"result": result, "source": "tmdb"}
 
@@ -133,9 +139,7 @@ async def get_series_details(
         result = await service.get_by_id(series_id, media_type="tv")
 
     if not result:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Series not found"
-        )
+        raise NotFound("Series", series_id)
 
     return {"result": result, "source": "tmdb"}
 
@@ -152,9 +156,7 @@ async def get_anime_details(
         result = await service.get_by_id(anime_id, media_type="anime")
 
     if not result:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Anime not found"
-        )
+        raise NotFound("Anime", anime_id)
 
     return {"result": result, "source": "jikan"}
 
@@ -171,9 +173,7 @@ async def get_manga_details(
         result = await service.get_by_id(manga_id, media_type="manga")
 
     if not result:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Manga not found"
-        )
+        raise NotFound("Manga", manga_id)
 
     return {"result": result, "source": "jikan"}
 
@@ -190,9 +190,7 @@ async def get_book_details(
         result = await service.get_by_id(book_id)
 
     if not result:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Book not found"
-        )
+        raise NotFound("Book", book_id)
 
     return {"result": result, "source": "openlibrary"}
 
@@ -209,9 +207,7 @@ async def get_game_details(
         result = await service.get_by_id(game_id)
 
     if not result:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Game not found"
-        )
+        raise NotFound("Game", game_id)
 
     return {"result": result, "source": "igdb"}
 

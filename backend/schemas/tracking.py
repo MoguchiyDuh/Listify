@@ -1,10 +1,17 @@
 from datetime import date
 from typing import Optional, Union
 
-from models import MediaTypeEnum, TrackingStatusEnum
 from pydantic import BaseModel, ConfigDict, Field
-from schemas import (AnimeResponse, BookResponse, GameResponse, MangaResponse,
-                     MovieResponse, SeriesResponse)
+
+from models import MediaTypeEnum, TrackingStatusEnum
+from schemas import (
+    AnimeResponse,
+    BookResponse,
+    GameResponse,
+    MangaResponse,
+    MovieResponse,
+    SeriesResponse,
+)
 
 
 class TrackingBase(BaseModel):

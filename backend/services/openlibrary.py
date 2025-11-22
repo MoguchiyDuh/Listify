@@ -35,6 +35,12 @@ class OpenLibraryService(BaseAPIService):
         data = await self._get(f"works/{media_id}.json")
         if data:
             logger.debug(f"Found book: {data.get('title', 'Unknown')}, data: {data}")
+            authors = []
+            for author in data["authors"]:
+                author_data = await self._get(f"{author["author"]["key"]}.json")
+                authors.append(author_data["name"])
+
+            data["author_name"] = authors
         else:
             logger.warning(f"Book not found with ID: {media_id}")
         return data
@@ -55,10 +61,16 @@ class OpenLibraryService(BaseAPIService):
 
     def to_book_create(self, ol_data: dict) -> BookCreate:
         """Convert Open Library data to BookCreate schema."""
-        # Extract author
-        author = None
+        # Extract authors
+        authors = []
         if "author_name" in ol_data and ol_data["author_name"]:
-            author = ol_data["author_name"][0]
+            authors = ol_data["author_name"]
+        elif (
+            "authors" in ol_data
+            and ol_data["authors"]
+            and "key" not in ol_data["authors"]
+        ):
+            authors = [author["name"] for author in ol_data["authors"]]
 
         # Extract ISBN
         isbn = None
@@ -95,7 +107,7 @@ class OpenLibraryService(BaseAPIService):
             external_id=ol_data.get("key", "").split("/")[-1],
             external_source="openlibrary",
             pages=ol_data.get("number_of_pages_median"),
-            author=author,
+            authors=authors if authors else None,
             isbn=isbn,
             tags=tags if tags else None,
         )

@@ -1,10 +1,11 @@
 from enum import Enum
 
-from core.database import Base
 from sqlalchemy import Boolean, Column, Date
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
+
+from core.database import Base
 
 
 class MediaTypeEnum(str, Enum):

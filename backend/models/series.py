@@ -1,4 +1,4 @@
-from sqlalchemy import Column
+from sqlalchemy import JSON, Column
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import ForeignKey, Integer
 
@@ -12,6 +12,7 @@ class Series(Media):
     total_episodes = Column(Integer, nullable=True)
     seasons = Column(Integer, nullable=True)
     status = Column(SQLEnum(MediaStatusEnum), nullable=True)
+    directors = Column(JSON, nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": MediaTypeEnum.SERIES,

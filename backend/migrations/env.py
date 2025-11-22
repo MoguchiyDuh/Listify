@@ -1,3 +1,4 @@
+import re
 import sys
 from logging.config import fileConfig
 from pathlib import Path
@@ -10,15 +11,36 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from core.config import settings
 from core.database import Base
-from models import (AgeRatingEnum, Anime, Book, Game, Manga, Media,
-                    MediaStatusEnum, MediaTag, MediaTypeEnum, Movie,
-                    PlatformEnum, Series, Tag, Tracking, TrackingStatusEnum,
-                    User)
+from models import (
+    AgeRatingEnum,
+    Anime,
+    Book,
+    Game,
+    Manga,
+    Media,
+    MediaStatusEnum,
+    MediaTag,
+    MediaTypeEnum,
+    Movie,
+    PlatformEnum,
+    Series,
+    Tag,
+    Tracking,
+    TrackingStatusEnum,
+    User,
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+match = re.match(r"^(\w+)(?:\+\w+)?(:///.*)$", settings.DATABASE_URL)
+if match:
+    db_url = match.group(1) + match.group(2)
+else:
+    db_url = settings.DATABASE_URL
+
+
+config.set_main_option("sqlalchemy.url", db_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

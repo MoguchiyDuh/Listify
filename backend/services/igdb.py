@@ -187,6 +187,7 @@ class IGDBService(BaseAPIService):
             "PC (Microsoft Windows)": PlatformEnum.PC,
             "PlayStation 5": PlatformEnum.PS5,
             "PlayStation 4": PlatformEnum.PS4,
+            "PlayStation 3": PlatformEnum.PS3,
             "Xbox Series X|S": PlatformEnum.XBOX_SERIES,
             "Xbox One": PlatformEnum.XBOX_ONE,
             "Nintendo Switch": PlatformEnum.SWITCH,
@@ -200,15 +201,15 @@ class IGDBService(BaseAPIService):
             if mapped and mapped not in platforms:
                 platforms.append(mapped)
 
-        # Extract developer and publisher
-        developer = None
-        publisher = None
+        # Extract developers and publishers
+        developers = []
+        publishers = []
         for company in igdb_data.get("involved_companies", []):
             company_name = company.get("company", {}).get("name")
-            if company.get("developer"):
-                developer = company_name
-            if company.get("publisher"):
-                publisher = company_name
+            if company.get("developer") and company_name:
+                developers.append(company_name)
+            if company.get("publisher") and company_name:
+                publishers.append(company_name)
 
         # Parse release date
         release_date = None
@@ -242,8 +243,8 @@ class IGDBService(BaseAPIService):
             external_id=str(igdb_data.get("id")),
             external_source="igdb",
             platforms=platforms,
-            developer=developer,
-            publisher=publisher,
+            developers=developers if developers else None,
+            publishers=publishers if publishers else None,
             tags=tags,
         )
 

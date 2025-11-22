@@ -1,8 +1,10 @@
 import re
 from typing import List, Optional
 
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models import MediaTag, MediaTypeEnum, Tag
-from sqlalchemy.orm import Session
 
 from .base import CRUDBase, logger
 
@@ -20,22 +22,24 @@ class CRUDTag(CRUDBase[Tag]):
         text = re.sub(r"[-\s]+", "-", text)
         return text
 
-    def get_by_name(self, db: Session, *, name: str) -> Optional[Tag]:
+    async def get_by_name(self, db: AsyncSession, *, name: str) -> Optional[Tag]:
         """Get tag by name (case-insensitive)"""
         logger.debug(f"Getting tag by name: {name}")
-        return db.query(Tag).filter(Tag.name.ilike(name)).first()
+        result = await db.execute(select(Tag).filter(Tag.name.ilike(name)))
+        return result.scalar_one_or_none()
 
-    def get_by_slug(self, db: Session, *, slug: str) -> Optional[Tag]:
+    async def get_by_slug(self, db: AsyncSession, *, slug: str) -> Optional[Tag]:
         """Get tag by slug"""
         logger.debug(f"Getting tag by slug: {slug}")
-        return db.query(Tag).filter(Tag.slug == slug).first()
+        result = await db.execute(select(Tag).filter(Tag.slug == slug))
+        return result.scalar_one_or_none()
 
-    def get_or_create(self, db: Session, *, name: str) -> Tag:
+    async def get_or_create(self, db: AsyncSession, *, name: str) -> Tag:
         """Get existing tag or create new one"""
         name = name.strip()
 
         # Check if tag exists (case-insensitive)
-        existing_tag = self.get_by_name(db, name=name)
+        existing_tag = await self.get_by_name(db, name=name)
         if existing_tag:
             logger.debug(f"Found existing tag: {existing_tag.name}")
             return existing_tag
@@ -46,32 +50,40 @@ class CRUDTag(CRUDBase[Tag]):
 
         tag = Tag(name=name, slug=slug)
         db.add(tag)
-        db.commit()
-        db.refresh(tag)
+        await db.commit()
+        await db.refresh(tag)
 
         logger.debug(f"Created tag with id: {tag.id}")
         return tag
 
-    def get_tags_for_media(self, db: Session, *, media_id: int) -> List[Tag]:
+    async def get_tags_for_media(self, db: AsyncSession, *, media_id: int) -> List[Tag]:
         """Get all tags for a media item"""
         logger.debug(f"Getting tags for media_id: {media_id}")
-        return db.query(Tag).join(MediaTag).filter(MediaTag.media_id == media_id).all()
+        result = await db.execute(
+            select(Tag).join(MediaTag).filter(MediaTag.media_id == media_id)
+        )
+        return list(result.scalars().all())
 
-    def get_media_by_tag(
-        self, db: Session, *, tag_id: int, media_type: Optional[MediaTypeEnum] = None
+    async def get_media_by_tag(
+        self,
+        db: AsyncSession,
+        *,
+        tag_id: int,
+        media_type: Optional[MediaTypeEnum] = None,
     ) -> List[int]:
         """Get all media IDs for a tag, optionally filtered by type"""
         logger.debug(f"Getting media for tag_id: {tag_id}, type: {media_type}")
-        query = db.query(MediaTag.media_id).filter(MediaTag.tag_id == tag_id)
+        stmt = select(MediaTag.media_id).filter(MediaTag.tag_id == tag_id)
 
         if media_type:
-            query = query.filter(MediaTag.media_type == media_type)
+            stmt = stmt.filter(MediaTag.media_type == media_type)
 
-        return [row[0] for row in query.all()]
+        result = await db.execute(stmt)
+        return [row[0] for row in result.all()]
 
-    def add_tags_to_media(
+    async def add_tags_to_media(
         self,
-        db: Session,
+        db: AsyncSession,
         *,
         media_id: int,
         media_type: MediaTypeEnum,
@@ -95,15 +107,16 @@ class CRUDTag(CRUDBase[Tag]):
         tags = []
         for tag_name in unique_names:
             # Get or create tag
-            tag = self.get_or_create(db, name=tag_name)
+            tag = await self.get_or_create(db, name=tag_name)
             tags.append(tag)
 
             # Check if association already exists
-            existing = (
-                db.query(MediaTag)
-                .filter(MediaTag.media_id == media_id, MediaTag.tag_id == tag.id)
-                .first()
+            result = await db.execute(
+                select(MediaTag).filter(
+                    MediaTag.media_id == media_id, MediaTag.tag_id == tag.id
+                )
             )
+            existing = result.scalar_one_or_none()
 
             if not existing:
                 # Create association
@@ -113,29 +126,31 @@ class CRUDTag(CRUDBase[Tag]):
                 db.add(media_tag)
                 logger.debug(f"Associated tag '{tag.name}' with media_id: {media_id}")
 
-        db.commit()
+        await db.commit()
         logger.info(f"Successfully added {len(tags)} tags to media_id: {media_id}")
         return tags
 
-    def remove_tags_from_media(
-        self, db: Session, *, media_id: int, tag_ids: Optional[List[int]] = None
+    async def remove_tags_from_media(
+        self, db: AsyncSession, *, media_id: int, tag_ids: Optional[List[int]] = None
     ):
         """Remove tags from media item. If tag_ids is None, remove all tags"""
         logger.info(f"Removing tags from media_id: {media_id}")
 
-        query = db.query(MediaTag).filter(MediaTag.media_id == media_id)
+        stmt = delete(MediaTag).filter(MediaTag.media_id == media_id)
 
         if tag_ids:
-            query = query.filter(MediaTag.tag_id.in_(tag_ids))
+            stmt = stmt.filter(MediaTag.tag_id.in_(tag_ids))
 
-        count = query.delete(synchronize_session=False)
-        db.commit()
+        result = await db.execute(stmt)
+        await db.commit()
 
-        logger.debug(f"Removed {count} tag associations from media_id: {media_id}")
+        logger.debug(
+            f"Removed {result.rowcount} tag associations from media_id: {media_id}"
+        )
 
-    def update_media_tags(
+    async def update_media_tags(
         self,
-        db: Session,
+        db: AsyncSession,
         *,
         media_id: int,
         media_type: MediaTypeEnum,
@@ -145,10 +160,10 @@ class CRUDTag(CRUDBase[Tag]):
         logger.info(f"Updating tags for media_id: {media_id}")
 
         # Remove all existing tags
-        self.remove_tags_from_media(db, media_id=media_id)
+        await self.remove_tags_from_media(db, media_id=media_id)
 
         # Add new tags
-        return self.add_tags_to_media(
+        return await self.add_tags_to_media(
             db, media_id=media_id, media_type=media_type, tag_names=tag_names
         )
 

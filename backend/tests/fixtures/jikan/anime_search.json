@@ -1,0 +1,480 @@
+[
+  {
+    "mal_id": 9253,
+    "url": "https://myanimelist.net/anime/9253/Steins_Gate",
+    "images": {
+      "jpg": {
+        "image_url": "https://cdn.myanimelist.net/images/anime/1935/127974.jpg",
+        "small_image_url": "https://cdn.myanimelist.net/images/anime/1935/127974t.jpg",
+        "large_image_url": "https://cdn.myanimelist.net/images/anime/1935/127974l.jpg"
+      },
+      "webp": {
+        "image_url": "https://cdn.myanimelist.net/images/anime/1935/127974.webp",
+        "small_image_url": "https://cdn.myanimelist.net/images/anime/1935/127974t.webp",
+        "large_image_url": "https://cdn.myanimelist.net/images/anime/1935/127974l.webp"
+      }
+    },
+    "trailer": {
+      "youtube_id": null,
+      "url": null,
+      "embed_url": "https://www.youtube-nocookie.com/embed/27OZc-ku6is?enablejsapi=1&wmode=opaque&autoplay=1",
+      "images": {
+        "image_url": null,
+        "small_image_url": null,
+        "medium_image_url": null,
+        "large_image_url": null,
+        "maximum_image_url": null
+      }
+    },
+    "approved": true,
+    "titles": [
+      {
+        "type": "Default",
+        "title": "Steins;Gate"
+      },
+      {
+        "type": "Japanese",
+        "title": "STEINS;GATE"
+      },
+      {
+        "type": "English",
+        "title": "Steins;Gate"
+      }
+    ],
+    "title": "Steins;Gate",
+    "title_english": "Steins;Gate",
+    "title_japanese": "STEINS;GATE",
+    "title_synonyms": [],
+    "type": "TV",
+    "source": "Visual novel",
+    "episodes": 24,
+    "status": "Finished Airing",
+    "airing": false,
+    "aired": {
+      "from": "2011-04-06T00:00:00+00:00",
+      "to": "2011-09-14T00:00:00+00:00",
+      "prop": {
+        "from": {
+          "day": 6,
+          "month": 4,
+          "year": 2011
+        },
+        "to": {
+          "day": 14,
+          "month": 9,
+          "year": 2011
+        }
+      },
+      "string": "Apr 6, 2011 to Sep 14, 2011"
+    },
+    "duration": "24 min per ep",
+    "rating": "PG-13 - Teens 13 or older",
+    "score": 9.07,
+    "scored_by": 1490258,
+    "rank": 4,
+    "popularity": 14,
+    "members": 2751377,
+    "favorites": 199067,
+    "synopsis": "Eccentric scientist Rintarou Okabe has a never-ending thirst for scientific exploration. Together with his ditzy but well-meaning friend Mayuri Shiina and his roommate Itaru Hashida, Okabe founds the Future Gadget Laboratory in the hopes of creating technological innovations that baffle the human psyche. Despite claims of grandeur, the only notable \"gadget\" the trio have created is a microwave that has the mystifying power to turn bananas into green goo.\n\nHowever, when Okabe attends a conference on time travel, he experiences a series of strange events that lead him to believe that there is more to the \"Phone Microwave\" gadget than meets the eye. Apparently able to send text messages into the past using the microwave, Okabe dabbles further with the \"time machine,\" attracting the ire and attention of the mysterious organization SERN.\n\nDue to the novel discovery, Okabe and his friends find themselves in an ever-present danger. As he works to mitigate the damage his invention has caused to the timeline, Okabe fights a battle to not only save his loved ones but also to preserve his degrading sanity.\n\n[Written by MAL Rewrite]",
+    "background": "Steins;Gate is based on 5pb. and Nitroplus' visual novel of the same title released in 2009. It serves as the second entry in the Science Adventure series.",
+    "season": "spring",
+    "year": 2011,
+    "broadcast": {
+      "day": "Wednesdays",
+      "time": "02:05",
+      "timezone": "Asia/Tokyo",
+      "string": "Wednesdays at 02:05 (JST)"
+    },
+    "producers": [
+      {
+        "mal_id": 61,
+        "type": "anime",
+        "name": "Frontier Works",
+        "url": "https://myanimelist.net/anime/producer/61/Frontier_Works"
+      },
+      {
+        "mal_id": 108,
+        "type": "anime",
+        "name": "Media Factory",
+        "url": "https://myanimelist.net/anime/producer/108/Media_Factory"
+      },
+      {
+        "mal_id": 113,
+        "type": "anime",
+        "name": "Kadokawa Shoten",
+        "url": "https://myanimelist.net/anime/producer/113/Kadokawa_Shoten"
+      },
+      {
+        "mal_id": 166,
+        "type": "anime",
+        "name": "Movic",
+        "url": "https://myanimelist.net/anime/producer/166/Movic"
+      },
+      {
+        "mal_id": 238,
+        "type": "anime",
+        "name": "AT-X",
+        "url": "https://myanimelist.net/anime/producer/238/AT-X"
+      },
+      {
+        "mal_id": 352,
+        "type": "anime",
+        "name": "Kadokawa Pictures Japan",
+        "url": "https://myanimelist.net/anime/producer/352/Kadokawa_Pictures_Japan"
+      },
+      {
+        "mal_id": 459,
+        "type": "anime",
+        "name": "Nitroplus",
+        "url": "https://myanimelist.net/anime/producer/459/Nitroplus"
+      }
+    ],
+    "licensors": [
+      {
+        "mal_id": 102,
+        "type": "anime",
+        "name": "Funimation",
+        "url": "https://myanimelist.net/anime/producer/102/Funimation"
+      }
+    ],
+    "studios": [
+      {
+        "mal_id": 314,
+        "type": "anime",
+        "name": "White Fox",
+        "url": "https://myanimelist.net/anime/producer/314/White_Fox"
+      }
+    ],
+    "genres": [
+      {
+        "mal_id": 8,
+        "type": "anime",
+        "name": "Drama",
+        "url": "https://myanimelist.net/anime/genre/8/Drama"
+      },
+      {
+        "mal_id": 24,
+        "type": "anime",
+        "name": "Sci-Fi",
+        "url": "https://myanimelist.net/anime/genre/24/Sci-Fi"
+      },
+      {
+        "mal_id": 41,
+        "type": "anime",
+        "name": "Suspense",
+        "url": "https://myanimelist.net/anime/genre/41/Suspense"
+      }
+    ],
+    "explicit_genres": [],
+    "themes": [
+      {
+        "mal_id": 40,
+        "type": "anime",
+        "name": "Psychological",
+        "url": "https://myanimelist.net/anime/genre/40/Psychological"
+      },
+      {
+        "mal_id": 78,
+        "type": "anime",
+        "name": "Time Travel",
+        "url": "https://myanimelist.net/anime/genre/78/Time_Travel"
+      }
+    ],
+    "demographics": []
+  },
+  {
+    "mal_id": 27957,
+    "url": "https://myanimelist.net/anime/27957/Steins_Gate__Soumei_Eichi_no_Cognitive_Computing",
+    "images": {
+      "jpg": {
+        "image_url": "https://cdn.myanimelist.net/images/anime/10/71319.jpg",
+        "small_image_url": "https://cdn.myanimelist.net/images/anime/10/71319t.jpg",
+        "large_image_url": "https://cdn.myanimelist.net/images/anime/10/71319l.jpg"
+      },
+      "webp": {
+        "image_url": "https://cdn.myanimelist.net/images/anime/10/71319.webp",
+        "small_image_url": "https://cdn.myanimelist.net/images/anime/10/71319t.webp",
+        "large_image_url": "https://cdn.myanimelist.net/images/anime/10/71319l.webp"
+      }
+    },
+    "trailer": {
+      "youtube_id": null,
+      "url": null,
+      "embed_url": null,
+      "images": {
+        "image_url": null,
+        "small_image_url": null,
+        "medium_image_url": null,
+        "large_image_url": null,
+        "maximum_image_url": null
+      }
+    },
+    "approved": true,
+    "titles": [
+      {
+        "type": "Default",
+        "title": "Steins;Gate: Soumei Eichi no Cognitive Computing"
+      },
+      {
+        "type": "Japanese",
+        "title": "Steins;Gate 聡明叡智のコグニティブ・コンピューティング"
+      },
+      {
+        "type": "English",
+        "title": "Steins;Gate: The Sagacious Wisdom of Cognitive Computing"
+      }
+    ],
+    "title": "Steins;Gate: Soumei Eichi no Cognitive Computing",
+    "title_english": "Steins;Gate: The Sagacious Wisdom of Cognitive Computing",
+    "title_japanese": "Steins;Gate 聡明叡智のコグニティブ・コンピューティング",
+    "title_synonyms": [],
+    "type": "ONA",
+    "source": "Visual novel",
+    "episodes": 4,
+    "status": "Finished Airing",
+    "airing": false,
+    "aired": {
+      "from": "2014-10-15T00:00:00+00:00",
+      "to": "2014-11-12T00:00:00+00:00",
+      "prop": {
+        "from": {
+          "day": 15,
+          "month": 10,
+          "year": 2014
+        },
+        "to": {
+          "day": 12,
+          "month": 11,
+          "year": 2014
+        }
+      },
+      "string": "Oct 15, 2014 to Nov 12, 2014"
+    },
+    "duration": "3 min per ep",
+    "rating": "PG-13 - Teens 13 or older",
+    "score": 7.44,
+    "scored_by": 63242,
+    "rank": 2285,
+    "popularity": 2087,
+    "members": 117717,
+    "favorites": 177,
+    "synopsis": "Mayuri Shiina brings a cognitive computing system—with a large pink Oopa toy serving as its terminal—to the Future Gadget Lab, insisting that it will help her and Kurisu Makise prepare fried chicken for the group, much to the dismay of Rintarou Okabe and Itaru \"Daru\" Hashida. Despite not having the proper ingredients, the Oopa cognitive computer assists Mayuri and Kurisu in perfecting a dish that the other lab members will enjoy.\n\nIn the following episodes, the cognitive computer continues to aid Okabe and his friends in their day-to-day lives. From helping Okabe and Kurisu to reconcile after an argument, to collecting input from the lab members to suggest improvements for the Lab; Okabe may not realize it yet, but his lab has gained a valuable asset!\n\n[Written by MAL Rewrite]",
+    "background": "Steins;Gate: Soumei Eichi no Cognitive Computing, or Steins;Gate: The Sagacious Wisdom of Cognitive Computing in English, consists of four short episodes. The shorts were streamed on IBM Japan’s website and official YouTube channel. The Cognitive Computing project is the result of a collaboration between Steins;Gate creator Chiyomaru Shikura of 5pb. Inc. and IBM Japan representatives. The series of shorts serve to promote IBM’s research in cognitive computing, or artificial intelligence.",
+    "season": null,
+    "year": null,
+    "broadcast": {
+      "day": null,
+      "time": null,
+      "timezone": null,
+      "string": null
+    },
+    "producers": [],
+    "licensors": [],
+    "studios": [
+      {
+        "mal_id": 314,
+        "type": "anime",
+        "name": "White Fox",
+        "url": "https://myanimelist.net/anime/producer/314/White_Fox"
+      }
+    ],
+    "genres": [
+      {
+        "mal_id": 4,
+        "type": "anime",
+        "name": "Comedy",
+        "url": "https://myanimelist.net/anime/genre/4/Comedy"
+      },
+      {
+        "mal_id": 24,
+        "type": "anime",
+        "name": "Sci-Fi",
+        "url": "https://myanimelist.net/anime/genre/24/Sci-Fi"
+      }
+    ],
+    "explicit_genres": [],
+    "themes": [],
+    "demographics": []
+  },
+  {
+    "mal_id": 11577,
+    "url": "https://myanimelist.net/anime/11577/Steins_Gate_Movie__Fuka_Ryouiki_no_Déjà_vu",
+    "images": {
+      "jpg": {
+        "image_url": "https://cdn.myanimelist.net/images/anime/1611/112806.jpg",
+        "small_image_url": "https://cdn.myanimelist.net/images/anime/1611/112806t.jpg",
+        "large_image_url": "https://cdn.myanimelist.net/images/anime/1611/112806l.jpg"
+      },
+      "webp": {
+        "image_url": "https://cdn.myanimelist.net/images/anime/1611/112806.webp",
+        "small_image_url": "https://cdn.myanimelist.net/images/anime/1611/112806t.webp",
+        "large_image_url": "https://cdn.myanimelist.net/images/anime/1611/112806l.webp"
+      }
+    },
+    "trailer": {
+      "youtube_id": null,
+      "url": null,
+      "embed_url": "https://www.youtube-nocookie.com/embed/rDsCNz3pWUg?enablejsapi=1&wmode=opaque&autoplay=1",
+      "images": {
+        "image_url": null,
+        "small_image_url": null,
+        "medium_image_url": null,
+        "large_image_url": null,
+        "maximum_image_url": null
+      }
+    },
+    "approved": true,
+    "titles": [
+      {
+        "type": "Default",
+        "title": "Steins;Gate Movie: Fuka Ryouiki no Déjà vu"
+      },
+      {
+        "type": "Synonym",
+        "title": "Steins Gate Movie"
+      },
+      {
+        "type": "Japanese",
+        "title": "劇場版 シュタインズゲート 負荷領域のデジャヴ"
+      },
+      {
+        "type": "English",
+        "title": "Steins;Gate: The Movie - Load Region of Déjà Vu"
+      },
+      {
+        "type": "German",
+        "title": "Steins; Gate: The Movie"
+      },
+      {
+        "type": "Spanish",
+        "title": "Steins;Gate: The Movie. Load Region Of Déjà Vu"
+      },
+      {
+        "type": "French",
+        "title": "Steins; Gate: Le Film - Déjà Vu in the Load Area"
+      }
+    ],
+    "title": "Steins;Gate Movie: Fuka Ryouiki no Déjà vu",
+    "title_english": "Steins;Gate: The Movie - Load Region of Déjà Vu",
+    "title_japanese": "劇場版 シュタインズゲート 負荷領域のデジャヴ",
+    "title_synonyms": ["Steins Gate Movie"],
+    "type": "Movie",
+    "source": "Visual novel",
+    "episodes": 1,
+    "status": "Finished Airing",
+    "airing": false,
+    "aired": {
+      "from": "2013-04-20T00:00:00+00:00",
+      "to": null,
+      "prop": {
+        "from": {
+          "day": 20,
+          "month": 4,
+          "year": 2013
+        },
+        "to": {
+          "day": null,
+          "month": null,
+          "year": null
+        }
+      },
+      "string": "Apr 20, 2013"
+    },
+    "duration": "1 hr 30 min",
+    "rating": "PG-13 - Teens 13 or older",
+    "score": 8.45,
+    "scored_by": 376186,
+    "rank": 180,
+    "popularity": 382,
+    "members": 631300,
+    "favorites": 2793,
+    "synopsis": "After a year in America, Kurisu Makise returns to Akihabara and reunites with Rintarou Okabe. However, their reunion is cut short when Okabe begins to experience recurring flashes of other timelines as the consequences of his time traveling start to manifest. These side effects eventually culminate in Okabe suddenly vanishing from the world, and only the startled Kurisu has any memory of his existence.\n\nIn the midst of despair, Kurisu is faced with a truly arduous choice that will test both her duty as a scientist and her loyalty as a friend: follow Okabe's advice and stay away from traveling through time to avoid the potential consequences it may have on the world lines, or ignore it to rescue the person that she cherishes most. Regardless of her decision, the path she chooses is one that will affect the past, the present, and the future.\n\n[Written by MAL Rewrite]",
+    "background": "The series won the 2013 Newtype Anime Awards for Best Anime Film.",
+    "season": null,
+    "year": null,
+    "broadcast": {
+      "day": null,
+      "time": null,
+      "timezone": null,
+      "string": null
+    },
+    "producers": [
+      {
+        "mal_id": 61,
+        "type": "anime",
+        "name": "Frontier Works",
+        "url": "https://myanimelist.net/anime/producer/61/Frontier_Works"
+      },
+      {
+        "mal_id": 108,
+        "type": "anime",
+        "name": "Media Factory",
+        "url": "https://myanimelist.net/anime/producer/108/Media_Factory"
+      },
+      {
+        "mal_id": 166,
+        "type": "anime",
+        "name": "Movic",
+        "url": "https://myanimelist.net/anime/producer/166/Movic"
+      },
+      {
+        "mal_id": 238,
+        "type": "anime",
+        "name": "AT-X",
+        "url": "https://myanimelist.net/anime/producer/238/AT-X"
+      },
+      {
+        "mal_id": 352,
+        "type": "anime",
+        "name": "Kadokawa Pictures Japan",
+        "url": "https://myanimelist.net/anime/producer/352/Kadokawa_Pictures_Japan"
+      },
+      {
+        "mal_id": 963,
+        "type": "anime",
+        "name": "MAGES.",
+        "url": "https://myanimelist.net/anime/producer/963/MAGES"
+      },
+      {
+        "mal_id": 2896,
+        "type": "anime",
+        "name": "Cinema Sunshine",
+        "url": "https://myanimelist.net/anime/producer/2896/Cinema_Sunshine"
+      }
+    ],
+    "licensors": [
+      {
+        "mal_id": 102,
+        "type": "anime",
+        "name": "Funimation",
+        "url": "https://myanimelist.net/anime/producer/102/Funimation"
+      }
+    ],
+    "studios": [
+      {
+        "mal_id": 314,
+        "type": "anime",
+        "name": "White Fox",
+        "url": "https://myanimelist.net/anime/producer/314/White_Fox"
+      }
+    ],
+    "genres": [
+      {
+        "mal_id": 8,
+        "type": "anime",
+        "name": "Drama",
+        "url": "https://myanimelist.net/anime/genre/8/Drama"
+      },
+      {
+        "mal_id": 24,
+        "type": "anime",
+        "name": "Sci-Fi",
+        "url": "https://myanimelist.net/anime/genre/24/Sci-Fi"
+      }
+    ],
+    "explicit_genres": [],
+    "themes": [],
+    "demographics": []
+  }
+]
+

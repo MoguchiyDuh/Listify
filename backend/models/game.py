@@ -1,6 +1,6 @@
 from enum import Enum
 
-from sqlalchemy import JSON, Column, ForeignKey, Integer, String
+from sqlalchemy import JSON, Column, ForeignKey, Integer
 
 from .media import Media, MediaTypeEnum
 
@@ -9,6 +9,7 @@ class PlatformEnum(str, Enum):
     PC = "pc"
     PS5 = "ps5"
     PS4 = "ps4"
+    PS3 = "ps3"
     XBOX_SERIES = "xbox_series"
     XBOX_ONE = "xbox_one"
     SWITCH = "switch"
@@ -21,8 +22,8 @@ class Game(Media):
 
     id = Column(Integer, ForeignKey("media.id"), primary_key=True)
     platforms = Column(JSON, nullable=True)  # List of PlatformEnum values
-    developer = Column(String(255), nullable=True)
-    publisher = Column(String(255), nullable=True)
+    developers = Column(JSON, nullable=True)
+    publishers = Column(JSON, nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": MediaTypeEnum.GAME,

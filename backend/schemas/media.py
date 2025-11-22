@@ -1,8 +1,12 @@
 from datetime import date
-from typing import List, Optional
+from typing import Any, List, Optional
 
-from models import MediaTypeEnum
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+
+from core.logger import setup_logger
+from models import MediaTypeEnum
+
+logger = setup_logger("schemas")
 
 
 class MediaBase(BaseModel):
@@ -59,25 +63,43 @@ class MediaResponse(MediaBase):
 
     @model_validator(mode="before")
     @classmethod
-    def extract_tags(cls, data):
+    def extract_tags(cls, data: Any) -> Any:
         """Extract tags from tag_associations before validation"""
-        if hasattr(data, "tag_associations") and data.tag_associations:
-            tags = [
-                assoc.tag.name
-                for assoc in data.tag_associations
-                if hasattr(assoc, "tag") and assoc.tag
-            ]
-            if isinstance(data, dict):
+        if hasattr(data, "tag_associations"):
+            # Simple check if we can safely access tag_associations
+            try:
+                if data.tag_associations is not None:
+                    tags = []
+                    for assoc in data.tag_associations:
+                        if (
+                            hasattr(assoc, "tag")
+                            and assoc.tag
+                            and hasattr(assoc.tag, "name")
+                        ):
+                            tags.append(assoc.tag.name)
+                    # Convert to dict for Pydantic
+                    if hasattr(data, "__dict__"):
+                        data_dict = data.__dict__.copy()
+                        data_dict["tags"] = tags
+                        return data_dict
+            except (AttributeError, RuntimeError) as e:
+                # If there's any issue accessing relationships, skip tag extraction
+                logger.warning(f"Warning: Could not extract tags: {e}")
+
+        elif isinstance(data, dict) and "tag_associations" in data:
+            # Handle dict input
+            tag_associations = data.get("tag_associations")
+            if tag_associations:
+                tags = []
+                for assoc in tag_associations:
+                    if (
+                        hasattr(assoc, "tag")
+                        and assoc.tag
+                        and hasattr(assoc.tag, "name")
+                    ):
+                        tags.append(assoc.tag.name)
                 data["tags"] = tags
-            else:
-                # For ORM objects, we need to return a dict
-                data_dict = {
-                    key: getattr(data, key)
-                    for key in dir(data)
-                    if not key.startswith("_")
-                }
-                data_dict["tags"] = tags
-                return data_dict
+
         return data
 
     model_config = ConfigDict(from_attributes=True)

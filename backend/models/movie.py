@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer
+from sqlalchemy import JSON, Column, ForeignKey, Integer
 
 from .media import Media, MediaTypeEnum
 
@@ -8,6 +8,7 @@ class Movie(Media):
 
     id = Column(Integer, ForeignKey("media.id"), primary_key=True)
     runtime = Column(Integer, nullable=True)  # in minutes
+    directors = Column(JSON, nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": MediaTypeEnum.MOVIE,
