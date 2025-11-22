@@ -83,11 +83,17 @@ class CRUDTag(CRUDBase[Tag]):
 
         logger.info(f"Adding {len(tag_names)} tags to media_id: {media_id}")
 
-        # Remove duplicates and empty strings
-        tag_names = list(set(name.strip() for name in tag_names if name.strip()))
+        # Remove duplicates (case-insensitive) and empty strings
+        seen = set()
+        unique_names = []
+        for name in tag_names:
+            name = name.strip()
+            if name and name.lower() not in seen:
+                seen.add(name.lower())
+                unique_names.append(name)
 
         tags = []
-        for tag_name in tag_names:
+        for tag_name in unique_names:
             # Get or create tag
             tag = self.get_or_create(db, name=tag_name)
             tags.append(tag)
