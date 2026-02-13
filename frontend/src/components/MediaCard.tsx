@@ -2,6 +2,7 @@ import { Card } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Star, Plus } from "lucide-react";
 import type { AnyMedia, Tracking, Series, Anime, Manga } from "../types";
+import { API_BASE_URL } from "../lib/api";
 
 interface MediaCardProps {
   media: AnyMedia;
@@ -13,7 +14,7 @@ interface MediaCardProps {
 
 export function MediaCard({ media, tracking, onAddToList, onClick, adding }: MediaCardProps) {
   const imageUrl = media.cover_image_url?.startsWith("/static")
-    ? `http://localhost:8000${media.cover_image_url}`
+    ? `${API_BASE_URL}${media.cover_image_url}`
     : media.cover_image_url;
 
   const getStatusTag = () => {

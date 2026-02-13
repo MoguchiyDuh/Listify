@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
 
-    DATABASE_URL: str = "sqlite:///./listify.db"
+    DATABASE_URL: str = "sqlite:////app/data/listify.db"
 
     @property
     def database_url_async(self) -> str:
@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    CORS_ORIGINS: str = "http://localhost:5173"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://localhost"
 
     COOKIE_SECURE: bool = False
     COOKIE_DOMAIN: Optional[str] = None

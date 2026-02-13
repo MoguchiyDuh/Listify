@@ -26,6 +26,7 @@ export interface Media {
   external_source?: string;
   is_custom: boolean;
   tags?: string[];
+  created_by_id?: number;
 }
 
 export interface Movie extends Media {

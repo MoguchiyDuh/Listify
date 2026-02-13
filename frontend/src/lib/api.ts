@@ -13,7 +13,7 @@ import type {
   TrackingStatus,
 } from "../types";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 function getCookie(name: string): string | null {
   const nameLenPlus = name.length + 1;
@@ -328,14 +328,14 @@ class ApiClient {
     });
   }
 
-  async updateTracking(userId: number, mediaId: number, data: TrackingUpdate): Promise<Tracking> {
+  async updateTracking(_userId: number, mediaId: number, data: TrackingUpdate): Promise<Tracking> {
     return this.request<Tracking>(`/api/tracking/${mediaId}`, {
       method: "PUT",
       body: JSON.stringify(data),
     });
   }
 
-  async deleteTracking(userId: number, mediaId: number): Promise<void> {
+  async deleteTracking(_userId: number, mediaId: number): Promise<void> {
     return this.request<void>(`/api/tracking/${mediaId}`, {
       method: "DELETE",
     });

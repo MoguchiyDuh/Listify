@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
     """Lifespan event handler"""
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
 
-    static_dir = Path(__file__).parent.parent / "static"
+    static_dir = Path(__file__).parent / "static"
     images_dir = static_dir / "images"
     static_dir.mkdir(exist_ok=True)
     images_dir.mkdir(exist_ok=True)
@@ -159,11 +159,12 @@ app.add_middleware(
 
 app.mount(
     "/static",
-    StaticFiles(directory=str(Path(__file__).parent.parent / "static")),
+    StaticFiles(directory=str(Path(__file__).parent / "static")),
     name="static",
 )
 
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(media.router, prefix="/api/media", tags=["media"])

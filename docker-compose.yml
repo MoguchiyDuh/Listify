@@ -1,0 +1,45 @@
+services:
+  redis:
+    image: redis:alpine
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    restart: always
+    environment:
+      - DATABASE_URL=sqlite:////app/data/listify.db
+      - REDIS_URL=redis://redis:6379
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:8080}
+    volumes:
+      - db_data:/app/data
+      - static_data:/app/static
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "80:8080"
+    volumes:
+      - static_data:/usr/share/nginx/html/static:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: always
+
+volumes:
+  db_data:
+  static_data:

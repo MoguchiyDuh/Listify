@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/Card";
+import { Card, CardContent, CardDescription, CardHeader } from "../components/ui/Card";
 import type { TrackingStats } from "../types";
 
 export function Dashboard() {

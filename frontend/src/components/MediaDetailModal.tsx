@@ -1,6 +1,7 @@
-import { X, Calendar, Star, Clock, User, BookOpen, Tv, Gamepad2, Film } from "lucide-react";
+import { X, Calendar, Star } from "lucide-react";
 import { Button } from "./ui/Button";
 import type { AnyMedia, Tracking, Movie, Series, Anime, Manga, Book, Game } from "../types";
+import { API_BASE_URL } from "../lib/api";
 
 interface MediaDetailModalProps {
   media: AnyMedia | null;
@@ -25,7 +26,7 @@ export function MediaDetailModal({ media, tracking, onClose, onEdit, onEditMedia
       ((media as any).cover?.url ? `https:${(media as any).cover.url}` : null) ||
       ((media as any).cover_i ? `https://covers.openlibrary.org/b/id/${(media as any).cover_i}-L.jpg` : null)
     : media.cover_image_url?.startsWith("/static")
-      ? `http://localhost:8000${media.cover_image_url}`
+      ? `${API_BASE_URL}${media.cover_image_url}`
       : media.cover_image_url;
 
   const getMediaDetails = () => {
