@@ -129,6 +129,7 @@ export interface TrackingStats {
   on_hold: number;
   favorites: number;
   average_rating: number;
+  by_type?: Record<string, number>;
 }
 
 export interface LoginRequest {
