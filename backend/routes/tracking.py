@@ -7,7 +7,12 @@ from core.database import get_db
 from core.exceptions import NotFound
 from crud import tracking_crud
 from models import MediaTypeEnum, TrackingStatusEnum, User
-from schemas import TrackingCreate, TrackingResponse, TrackingUpdate
+from schemas import (
+    TrackingCreate,
+    TrackingResponse,
+    TrackingStatsResponse,
+    TrackingUpdate,
+)
 
 from .base import logger
 from .deps import get_current_user
@@ -78,7 +83,7 @@ async def get_favorites(
     )
 
 
-@router.get("/statistics")
+@router.get("/statistics", response_model=TrackingStatsResponse)
 async def get_statistics(
     media_type: Optional[MediaTypeEnum] = None,
     db: AsyncSession = Depends(get_db),

@@ -66,3 +66,17 @@ class TrackingResponse(TrackingBase):
     ] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class TrackingStatsResponse(BaseModel):
+    """Schema for tracking statistics response"""
+
+    total: int
+    completed: int
+    in_progress: int
+    plan_to_watch: int
+    dropped: int
+    on_hold: int
+    favorites: int
+    average_rating: float
+    by_type: Optional[dict[str, int]] = None
