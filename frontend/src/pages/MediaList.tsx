@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { api } from "../lib/api";
 import { MediaCard } from "../components/MediaCard";
@@ -29,10 +30,17 @@ export function MediaList({ mediaType, title }: MediaListProps) {
   const [showCustomDialog, setShowCustomDialog] = useState(false);
   const [showTrackingDialog, setShowTrackingDialog] = useState(false);
   const [customMediaData, setCustomMediaData] = useState<any>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Filter and sort state
-  const [statusFilter, setStatusFilter] = useState<TrackingStatus | "all">("all");
-  const [mediaTypeFilter, setMediaTypeFilter] = useState<MediaType | "all">(mediaType);
+  const [statusFilter, setStatusFilter] = useState<TrackingStatus | "all">(
+    (searchParams.get("status") as TrackingStatus) || "all"
+  );
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<MediaType | "all">(
+    mediaType === "all" 
+      ? (searchParams.get("type") as MediaType || "all")
+      : mediaType
+  );
   const [sortBy, setSortBy] = useState<SortOption>("created_at");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -41,6 +49,15 @@ export function MediaList({ mediaType, title }: MediaListProps) {
     setMediaTypeFilter(mediaType);
     setCurrentPage(1);
   }, [mediaType]);
+
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    if (statusFilter !== "all") params.status = statusFilter;
+    if (mediaType === "all" && mediaTypeFilter !== "all") {
+      params.type = mediaTypeFilter;
+    }
+    setSearchParams(params, { replace: true });
+  }, [statusFilter, mediaTypeFilter, mediaType, setSearchParams]);
 
   useEffect(() => {
     loadTracking();
