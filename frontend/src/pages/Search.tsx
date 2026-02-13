@@ -252,7 +252,7 @@ export function Search() {
       />
 
       <AddMediaDialog
-        mediaTitle={selectedMedia?.data?.title || selectedMedia?.data?.name || ""}
+        media={selectedMedia?.data || null}
         onConfirm={handleConfirmAdd}
         onCancel={() => {
           setShowDialog(false);

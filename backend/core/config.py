@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "Listify"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
+    TESTING: bool = False
 
     DATABASE_URL: str = "sqlite:////app/data/listify.db"
 

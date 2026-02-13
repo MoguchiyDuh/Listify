@@ -265,6 +265,14 @@ export function MediaDetailModal({ media, tracking, onClose, onEdit, onEditMedia
                   </div>
                 )}
 
+                {/* Priority */}
+                {tracking.priority && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Priority</p>
+                    <p className="text-sm font-medium capitalize">{tracking.priority}</p>
+                  </div>
+                )}
+
                 {/* Start Date */}
                 {tracking.start_date && (
                   <div>

@@ -6,7 +6,7 @@ from .media import AgeRatingEnum, Media, MediaStatusEnum, MediaTypeEnum
 from .movie import Movie
 from .series import Series
 from .tag import MediaTag, Tag
-from .tracking import Tracking, TrackingStatusEnum
+from .tracking import Tracking, TrackingPriorityEnum, TrackingStatusEnum
 from .user import User
 
 __all__ = [
@@ -24,6 +24,7 @@ __all__ = [
     "PlatformEnum",
     "Tracking",
     "TrackingStatusEnum",
+    "TrackingPriorityEnum",
     "Tag",
     "MediaTag",
 ]

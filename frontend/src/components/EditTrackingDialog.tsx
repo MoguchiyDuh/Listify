@@ -1,13 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
-import type { Tracking, TrackingStatus } from "../types";
+import { PrioritySelector } from "./PrioritySelector";
+import type { Tracking, TrackingStatus, TrackingPriority, AnyMedia } from "../types";
+import { api } from "../lib/api";
+import { toast } from "sonner";
+import { Upload } from "lucide-react";
 
 interface EditTrackingDialogProps {
   tracking: Tracking | null;
   onConfirm: (
     trackingData: {
       status: TrackingStatus;
+      priority?: TrackingPriority;
       rating?: number;
       progress?: number;
       start_date?: string;
@@ -31,8 +36,28 @@ export function EditTrackingDialog({
 }: EditTrackingDialogProps) {
   const [activeTab, setActiveTab] = useState<"tracking" | "media">("tracking");
 
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
+  const getMaxProgress = (media: AnyMedia): number | null => {
+    switch (media.media_type) {
+      case "series":
+      case "anime":
+        return (media as any).total_episodes || null;
+      case "manga":
+        return (media as any).total_chapters || null;
+      case "book":
+        return (media as any).pages || null;
+      default:
+        return null;
+    }
+  };
+
   // Tracking state
   const [status, setStatus] = useState<TrackingStatus>("planned");
+  const [priority, setPriority] = useState<TrackingPriority | null>(null);
   const [rating, setRating] = useState<string>("");
   const [progress, setProgress] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
@@ -45,6 +70,9 @@ export function EditTrackingDialog({
   const [description, setDescription] = useState("");
   const [mediaReleaseDate, setMediaReleaseDate] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [tags, setTags] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Type-specific media fields
   const [runtime, setRuntime] = useState("");
@@ -65,6 +93,7 @@ export function EditTrackingDialog({
   useEffect(() => {
     if (tracking) {
       setStatus(tracking.status);
+      setPriority(tracking.priority || null);
       setRating(tracking.rating?.toString() || "");
       setProgress(tracking.progress?.toString() || "");
       setStartDate(tracking.start_date || "");
@@ -78,6 +107,7 @@ export function EditTrackingDialog({
         setDescription(m.description || "");
         setMediaReleaseDate(m.release_date || "");
         setCoverImageUrl(m.cover_image_url || "");
+        setTags(m.tags?.join(", ") || "");
 
         // Set type-specific fields
         setRuntime(m.runtime?.toString() || "");
@@ -100,11 +130,73 @@ export function EditTrackingDialog({
 
   if (!isOpen || !tracking) return null;
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    // Validate file size (e.g., 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be less than 5MB");
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const { url } = await api.uploadImage(file);
+      setCoverImageUrl(url);
+      toast.success("Image uploaded successfully");
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload image");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleStatusChange = (newStatus: TrackingStatus) => {
+    setStatus(newStatus);
+
+    if (newStatus === "in_progress" && !startDate) {
+      setStartDate(getTodayDate());
+    }
+
+    if (newStatus === "completed" || newStatus === "dropped") {
+      if (!endDate) {
+        setEndDate(getTodayDate());
+      }
+      if (!startDate) {
+        setStartDate(getTodayDate());
+      }
+      if (newStatus === "completed" && tracking.media) {
+        const maxProgress = getMaxProgress(tracking.media);
+        if (maxProgress) {
+          setProgress(maxProgress.toString());
+        }
+      }
+    }
+
+    if (newStatus === "planned") {
+      setProgress("0");
+      setRating("");
+      setStartDate("");
+      setEndDate("");
+    } else {
+      setPriority(null);
+    }
+  };
+
   const handleSubmit = () => {
     const trackingData = {
       status,
+      priority: priority || undefined,
       rating: rating ? parseFloat(rating) : undefined,
-      progress: progress ? parseInt(progress) : undefined,
+      progress: progress ? parseInt(progress) : 0,
       start_date: startDate || undefined,
       end_date: endDate || undefined,
       favorite,
@@ -118,6 +210,7 @@ export function EditTrackingDialog({
         description: description || undefined,
         release_date: mediaReleaseDate || undefined,
         cover_image_url: coverImageUrl || undefined,
+        tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
       };
 
       // Add type-specific fields
@@ -194,7 +287,7 @@ export function EditTrackingDialog({
                     key={s.value}
                     variant={status === s.value ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setStatus(s.value)}
+                    onClick={() => handleStatusChange(s.value)}
                   >
                     {s.label}
                   </Button>
@@ -202,51 +295,67 @@ export function EditTrackingDialog({
               </div>
             </div>
 
+            {/* Priority - only show if planned */}
+            {status === "planned" && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">Priority</label>
+                <PrioritySelector value={priority} onChange={setPriority} />
+              </div>
+            )}
+
             {/* Progress */}
-            <div>
-              <label className="text-sm font-medium mb-2 block">Progress</label>
-              <Input
-                type="number"
-                min="0"
-                value={progress}
-                onChange={(e) => setProgress(e.target.value)}
-                placeholder="Episodes/Chapters/Pages"
-              />
-            </div>
+            {status !== "planned" && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">Progress</label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={progress}
+                  onChange={(e) => setProgress(e.target.value)}
+                  placeholder="Episodes/Chapters/Pages"
+                />
+              </div>
+            )}
 
             {/* Rating */}
-            <div>
-              <label className="text-sm font-medium mb-2 block">Rating (0-10)</label>
-              <Input
-                type="number"
-                min="0"
-                max="10"
-                step="0.1"
-                value={rating}
-                onChange={(e) => setRating(e.target.value)}
-                placeholder="0-10"
-              />
-            </div>
+            {(status === "completed" || status === "dropped") && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">Rating (0-10)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.1"
+                  value={rating}
+                  onChange={(e) => setRating(e.target.value)}
+                  placeholder="0-10"
+                />
+              </div>
+            )}
 
             {/* Start Date */}
-            <div>
-              <label className="text-sm font-medium mb-2 block">Start Date</label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
+            {status !== "planned" && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">Start Date</label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+            )}
 
             {/* End Date */}
-            <div>
-              <label className="text-sm font-medium mb-2 block">End Date</label>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
+            {(status === "completed" || status === "dropped") && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">End Date</label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
+            )}
 
             {/* Notes */}
             <div>
@@ -305,11 +414,43 @@ export function EditTrackingDialog({
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">Cover Image URL</label>
+              <label className="text-sm font-medium mb-2 block">Cover Image</label>
+              <div className="flex gap-2">
+                <Input
+                  value={coverImageUrl}
+                  onChange={(e) => setCoverImageUrl(e.target.value)}
+                  placeholder="https://... or upload a file"
+                  className="flex-1"
+                />
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  title="Upload image"
+                >
+                  <Upload className={`w-4 h-4 ${isUploading ? 'animate-pulse' : ''}`} />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Provide a URL or upload a local file
+              </p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Tags (comma-separated)</label>
               <Input
-                value={coverImageUrl}
-                onChange={(e) => setCoverImageUrl(e.target.value)}
-                placeholder="https://..."
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="action, drama, sci-fi"
               />
             </div>
 

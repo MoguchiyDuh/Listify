@@ -7,12 +7,16 @@ import { EditTrackingDialog } from "../components/EditTrackingDialog";
 import { AddCustomMediaDialog } from "../components/AddCustomMediaDialog";
 import { AddMediaDialog } from "../components/AddMediaDialog";
 import { Button } from "../components/ui/Button";
-import type { Tracking, MediaType } from "../types";
+import { LibraryToolbar } from "../components/LibraryToolbar";
+import type { SortOption } from "../components/LibraryToolbar";
+import type { Tracking, MediaType, TrackingStatus } from "../types";
 
 interface MediaListProps {
-  mediaType: MediaType;
+  mediaType: MediaType | "all";
   title: string;
 }
+
+const ITEMS_PER_PAGE = 100;
 
 export function MediaList({ mediaType, title }: MediaListProps) {
   const { user } = useAuth();
@@ -26,19 +30,57 @@ export function MediaList({ mediaType, title }: MediaListProps) {
   const [showTrackingDialog, setShowTrackingDialog] = useState(false);
   const [customMediaData, setCustomMediaData] = useState<any>(null);
 
+  // Filter and sort state
+  const [statusFilter, setStatusFilter] = useState<TrackingStatus | "all">("all");
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<MediaType | "all">(mediaType);
+  const [sortBy, setSortBy] = useState<SortOption>("created_at");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    // If the prop mediaType changes (e.g. navigation), update the filter
+    setMediaTypeFilter(mediaType);
+    setCurrentPage(1);
+  }, [mediaType]);
+
   useEffect(() => {
     loadTracking();
-  }, [mediaType]);
+  }, [mediaTypeFilter, statusFilter, sortBy, currentPage]);
 
   const loadTracking = async () => {
     try {
-      const data = await api.getTracking(undefined, mediaType);
+      setLoading(true);
+      const skip = (currentPage - 1) * ITEMS_PER_PAGE;
+      const data = await api.getTracking(
+        statusFilter === "all" ? undefined : statusFilter,
+        mediaTypeFilter === "all" ? undefined : mediaTypeFilter,
+        sortBy,
+        skip,
+        ITEMS_PER_PAGE
+      );
       setTracking(data);
     } catch (error) {
       console.error("Failed to load tracking:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleStatusChange = (status: TrackingStatus | "all") => {
+    setStatusFilter(status);
+    setCurrentPage(1);
+    if (status === "planned") {
+      setSortBy("priority");
+    }
+  };
+
+  const handleMediaTypeChange = (type: MediaType | "all") => {
+    setMediaTypeFilter(type);
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (sort: SortOption) => {
+    setSortBy(sort);
+    setCurrentPage(1);
   };
 
   const handleCardClick = (trackingItem: Tracking) => {
@@ -59,7 +101,7 @@ export function MediaList({ mediaType, title }: MediaListProps) {
       // Step 1: Update media if provided (only for custom media)
       if (mediaData && editingTracking.media?.is_custom) {
         const mediaId = editingTracking.media_id;
-        switch (mediaType) {
+        switch (editingTracking.media_type) {
           case "movie":
             await api.updateMovie(mediaId, mediaData);
             break;
@@ -151,7 +193,7 @@ export function MediaList({ mediaType, title }: MediaListProps) {
       // Step 2: Create tracking entry
       await api.createTracking({
         media_id: createdMedia.id,
-        media_type: mediaType,
+        media_type: createdMedia.media_type as MediaType,
         ...trackingData,
       });
 
@@ -165,43 +207,79 @@ export function MediaList({ mediaType, title }: MediaListProps) {
     }
   };
 
-  if (loading) {
-    return <div className="text-center">Loading...</div>;
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">{title}</h1>
           <p className="text-muted-foreground mt-1">
-            {tracking.length} items in your list
+            Viewing your collection
           </p>
         </div>
-        <Button onClick={handleAddNew}>Add New</Button>
+        {mediaType !== "all" && <Button onClick={handleAddNew}>Add New</Button>}
       </div>
 
-      {tracking.length === 0 ? (
+      <LibraryToolbar
+        statusFilter={statusFilter}
+        mediaTypeFilter={mediaTypeFilter}
+        sortBy={sortBy}
+        onStatusChange={handleStatusChange}
+        onMediaTypeChange={handleMediaTypeChange}
+        onSortChange={handleSortChange}
+        showMediaTypeFilter={mediaType === "all"}
+      />
+
+      {loading ? (
+        <div className="text-center py-12">Loading...</div>
+      ) : tracking.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          No {title.toLowerCase()} in your list yet
+          No {title.toLowerCase()} found matching your filters
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {tracking.map((item) => {
-            if (!item.media) {
-              console.error("Tracking item missing media:", item);
-              return null;
-            }
-            return (
-              <MediaCard
-                key={item.id}
-                media={item.media}
-                tracking={item}
-                onClick={() => handleCardClick(item)}
-              />
-            );
-          })}
-        </div>
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {tracking.map((item) => {
+              if (!item.media) {
+                console.error("Tracking item missing media:", item);
+                return null;
+              }
+              return (
+                <MediaCard
+                  key={item.id}
+                  media={item.media}
+                  tracking={item}
+                  onClick={() => handleCardClick(item)}
+                />
+              );
+            })}
+          </div>
+
+          <div className="flex items-center justify-between mt-8 border-t pt-6">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCurrentPage((prev) => Math.max(prev - 1, 1));
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              disabled={currentPage === 1 || loading}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground font-medium">
+              Page {currentPage}
+            </span>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCurrentPage((prev) => prev + 1);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              disabled={tracking.length < ITEMS_PER_PAGE || loading}
+            >
+              Next
+            </Button>
+          </div>
+        </>
       )}
 
       <MediaDetailModal
@@ -227,7 +305,7 @@ export function MediaList({ mediaType, title }: MediaListProps) {
       />
 
       <AddCustomMediaDialog
-        mediaType={mediaType}
+        mediaType={mediaType as MediaType}
         onConfirm={handleCustomMediaSubmit}
         onCancel={() => {
           setShowCustomDialog(false);
@@ -237,7 +315,7 @@ export function MediaList({ mediaType, title }: MediaListProps) {
       />
 
       <AddMediaDialog
-        mediaTitle={customMediaData?.title || ""}
+        media={customMediaData ? { ...customMediaData, media_type: mediaType === "all" ? customMediaData.media_type : mediaType } : null}
         onConfirm={handleTrackingSubmit}
         onCancel={() => {
           setShowTrackingDialog(false);

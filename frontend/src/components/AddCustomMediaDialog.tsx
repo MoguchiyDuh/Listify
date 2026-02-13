@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import type { MediaType } from "../types";
+import { api } from "../lib/api";
+import { toast } from "sonner";
+import { Upload } from "lucide-react";
 
 interface AddCustomMediaDialogProps {
   mediaType: MediaType;
@@ -20,6 +23,9 @@ export function AddCustomMediaDialog({
   const [description, setDescription] = useState("");
   const [releaseDate, setReleaseDate] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [tags, setTags] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Type-specific fields
   const [runtime, setRuntime] = useState("");
@@ -39,12 +45,42 @@ export function AddCustomMediaDialog({
 
   if (!isOpen) return null;
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    // Validate file size (e.g., 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be less than 5MB");
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const { url } = await api.uploadImage(file);
+      setCoverImageUrl(url);
+      toast.success("Image uploaded successfully");
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload image");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSubmit = () => {
     const baseData: any = {
       title,
       description: description || undefined,
       release_date: releaseDate || undefined,
       cover_image_url: coverImageUrl || undefined,
+      tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : undefined,
       is_custom: true,
     };
 
@@ -83,6 +119,7 @@ export function AddCustomMediaDialog({
     setDescription("");
     setReleaseDate("");
     setCoverImageUrl("");
+    setTags("");
     setRuntime("");
     setDirector("");
     setTotalEpisodes("");
@@ -151,11 +188,44 @@ export function AddCustomMediaDialog({
 
           {/* Cover Image URL */}
           <div>
-            <label className="text-sm font-medium mb-2 block">Cover Image URL</label>
+            <label className="text-sm font-medium mb-2 block">Cover Image</label>
+            <div className="flex gap-2">
+              <Input
+                value={coverImageUrl}
+                onChange={(e) => setCoverImageUrl(e.target.value)}
+                placeholder="https://... or upload a file"
+                className="flex-1"
+              />
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleImageUpload}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                title="Upload image"
+              >
+                <Upload className={`w-4 h-4 ${isUploading ? 'animate-pulse' : ''}`} />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Provide a URL or upload a local file
+            </p>
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="text-sm font-medium mb-2 block">Tags (comma-separated)</label>
             <Input
-              value={coverImageUrl}
-              onChange={(e) => setCoverImageUrl(e.target.value)}
-              placeholder="https://..."
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="action, drama, sci-fi"
             />
           </div>
 

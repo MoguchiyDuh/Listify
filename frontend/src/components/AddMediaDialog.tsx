@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
-import type { TrackingStatus } from "../types";
+import { PrioritySelector } from "./PrioritySelector";
+import type { TrackingStatus, TrackingPriority, AnyMedia } from "../types";
 
 interface AddMediaDialogProps {
-  mediaTitle: string;
+  media: AnyMedia | null;
   onConfirm: (data: {
     status: TrackingStatus;
+    priority?: TrackingPriority;
     rating?: number;
     progress?: number;
     start_date?: string;
@@ -18,34 +20,89 @@ interface AddMediaDialogProps {
   isOpen: boolean;
 }
 
-export function AddMediaDialog({ mediaTitle, onConfirm, onCancel, isOpen }: AddMediaDialogProps) {
+export function AddMediaDialog({ media, onConfirm, onCancel, isOpen }: AddMediaDialogProps) {
   const getTodayDate = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
   };
 
+  const getMaxProgress = (media: AnyMedia): number | null => {
+    switch (media.media_type) {
+      case "series":
+      case "anime":
+        return (media as any).total_episodes || null;
+      case "manga":
+        return (media as any).total_chapters || null;
+      case "book":
+        return (media as any).pages || null;
+      default:
+        return null;
+    }
+  };
+
   const [status, setStatus] = useState<TrackingStatus>("planned");
+  const [priority, setPriority] = useState<TrackingPriority | null>(null);
   const [rating, setRating] = useState<string>("");
-  const [progress, setProgress] = useState<string>("");
-  const [startDate, setStartDate] = useState<string>(getTodayDate());
+  const [progress, setProgress] = useState<string>("0");
+  const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [favorite, setFavorite] = useState(false);
   const [notes, setNotes] = useState("");
 
-  // Reset start date to today when dialog opens
+  // Reset state when dialog opens
   useEffect(() => {
     if (isOpen) {
-      setStartDate(getTodayDate());
+      setStatus("planned");
+      setPriority(null);
+      setRating("");
+      setProgress("0");
+      setStartDate("");
+      setEndDate("");
+      setFavorite(false);
+      setNotes("");
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !media) return null;
+
+  const handleStatusChange = (newStatus: TrackingStatus) => {
+    setStatus(newStatus);
+
+    if (newStatus === "in_progress" && !startDate) {
+      setStartDate(getTodayDate());
+    }
+
+    if (newStatus === "completed" || newStatus === "dropped") {
+      if (!endDate) {
+        setEndDate(getTodayDate());
+      }
+      if (!startDate) {
+        setStartDate(getTodayDate());
+      }
+      if (newStatus === "completed" && media) {
+        const maxProgress = getMaxProgress(media);
+        if (maxProgress) {
+          setProgress(maxProgress.toString());
+        }
+      }
+    }
+
+    if (newStatus === "planned") {
+      setProgress("0");
+      setRating("");
+      setStartDate("");
+      setEndDate("");
+    } else {
+      setPriority(null);
+    }
+  };
 
   const handleSubmit = () => {
     onConfirm({
       status,
+      priority: priority || undefined,
       rating: rating ? parseFloat(rating) : undefined,
-      progress: progress ? parseInt(progress) : undefined,
+      progress: progress ? parseInt(progress) : 0,
       start_date: startDate || undefined,
       end_date: endDate || undefined,
       favorite,
@@ -61,11 +118,19 @@ export function AddMediaDialog({ mediaTitle, onConfirm, onCancel, isOpen }: AddM
     { value: "dropped", label: "Dropped" },
   ];
 
+  const showProgress = status !== "planned";
+  const showRating = status === "completed" || status === "dropped";
+  const showStartDate = status !== "planned";
+  const showEndDate = status === "completed" || status === "dropped";
+  const showPriority = status === "planned";
+
+  const title = media.title || (media as any).name || "Unknown";
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-card border border-border rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold mb-4">Add to List</h2>
-        <p className="text-sm text-muted-foreground mb-4">{mediaTitle}</p>
+        <p className="text-sm text-muted-foreground mb-4">{title}</p>
 
         <div className="space-y-4">
           {/* Status */}
@@ -77,7 +142,7 @@ export function AddMediaDialog({ mediaTitle, onConfirm, onCancel, isOpen }: AddM
                   key={s.value}
                   variant={status === s.value ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setStatus(s.value)}
+                  onClick={() => handleStatusChange(s.value)}
                 >
                   {s.label}
                 </Button>
@@ -85,20 +150,30 @@ export function AddMediaDialog({ mediaTitle, onConfirm, onCancel, isOpen }: AddM
             </div>
           </div>
 
-          {/* Progress */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Progress</label>
-            <Input
-              type="number"
-              min="0"
-              value={progress}
-              onChange={(e) => setProgress(e.target.value)}
-              placeholder="Episodes/Chapters/Pages"
-            />
-          </div>
+          {/* Priority - only show if planned */}
+          {showPriority && (
+            <div>
+              <label className="text-sm font-medium mb-2 block">Priority</label>
+              <PrioritySelector value={priority} onChange={setPriority} />
+            </div>
+          )}
 
-          {/* Rating - only show if completed */}
-          {status === "completed" && (
+          {/* Progress */}
+          {showProgress && (
+            <div>
+              <label className="text-sm font-medium mb-2 block">Progress</label>
+              <Input
+                type="number"
+                min="0"
+                value={progress}
+                onChange={(e) => setProgress(e.target.value)}
+                placeholder="Episodes/Chapters/Pages"
+              />
+            </div>
+          )}
+
+          {/* Rating */}
+          {showRating && (
             <div>
               <label className="text-sm font-medium mb-2 block">Rating (0-10)</label>
               <Input
@@ -114,17 +189,19 @@ export function AddMediaDialog({ mediaTitle, onConfirm, onCancel, isOpen }: AddM
           )}
 
           {/* Start Date */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Start Date</label>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
+          {showStartDate && (
+            <div>
+              <label className="text-sm font-medium mb-2 block">Start Date</label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+          )}
 
-          {/* End Date - only show if completed */}
-          {status === "completed" && (
+          {/* End Date */}
+          {showEndDate && (
             <div>
               <label className="text-sm font-medium mb-2 block">End Date</label>
               <Input
@@ -135,18 +212,16 @@ export function AddMediaDialog({ mediaTitle, onConfirm, onCancel, isOpen }: AddM
             </div>
           )}
 
-          {/* Notes - only show if completed */}
-          {status === "completed" && (
-            <div>
-              <label className="text-sm font-medium mb-2 block">Notes</label>
-              <textarea
-                className="w-full min-h-[100px] px-3 py-2 bg-background border border-input rounded-md"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Your thoughts..."
-              />
-            </div>
-          )}
+          {/* Notes */}
+          <div>
+            <label className="text-sm font-medium mb-2 block">Notes</label>
+            <textarea
+              className="w-full min-h-[100px] px-3 py-2 bg-background border border-input rounded-md"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Your thoughts..."
+            />
+          </div>
 
           {/* Favorite */}
           <div className="flex items-center gap-2">

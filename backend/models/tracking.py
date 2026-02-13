@@ -18,6 +18,12 @@ class TrackingStatusEnum(str, Enum):
     ON_HOLD = "on_hold"
 
 
+class TrackingPriorityEnum(str, Enum):
+    LOW = "low"
+    MID = "mid"
+    HIGH = "high"
+
+
 class Tracking(Base):
     __tablename__ = "tracking"
 
@@ -31,6 +37,7 @@ class Tracking(Base):
     media_type = Column(SQLEnum(MediaTypeEnum), nullable=False, index=True)
 
     status = Column(SQLEnum(TrackingStatusEnum), nullable=False)
+    priority = Column(SQLEnum(TrackingPriorityEnum), nullable=True)
     rating = Column(Float, nullable=True)
     progress = Column(Integer, default=0)
 

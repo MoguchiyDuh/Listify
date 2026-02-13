@@ -494,9 +494,12 @@ class CRUDMedia(CRUDBase[Media]):
                     if file_path.is_file():
                         logger.info(f"Deleting local image file: {file_path}")
                         file_path.unlink(missing_ok=True)
+                except (PermissionError, OSError) as e:
+                    # Log warning but don't block DB deletion
+                    logger.warning(f"Could not delete file {media.cover_image_url} (permission/OS error): {str(e)}")
                 except Exception as e:
-                    # Log but don't block DB deletion
-                    logger.error(f"Error deleting file {media.cover_image_url}: {str(e)}")
+                    # Log error but don't block DB deletion
+                    logger.error(f"Unexpected error deleting file {media.cover_image_url}: {str(e)}")
 
             external_id = media.external_id
             external_source = media.external_source

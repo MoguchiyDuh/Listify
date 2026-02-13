@@ -50,6 +50,10 @@ function AppRoutes() {
         <Route path="/search" element={<Search />} />
         <Route path="/favorites" element={<Favorites />} />
         <Route
+          path="/library"
+          element={<MediaList mediaType="all" title="My Library" />}
+        />
+        <Route
           path="/movies"
           element={<MediaList mediaType="movie" title="Movies" />}
         />

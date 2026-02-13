@@ -43,7 +43,7 @@ class TestTrackingRoutes:
         data = response.json()
         assert data["media_id"] == movie.id
         assert data["status"] == "planned"
-        assert data["rating"] == 8.5
+        assert data["rating"] is None
 
     @pytest.mark.asyncio
     async def test_create_duplicate_tracking(
@@ -141,7 +141,7 @@ class TestTrackingRoutes:
             )
 
         response = await client.get(
-            "/api/tracking/?status_filter=completed",
+            "/api/tracking/?status=completed",
             headers={"Authorization": f"Bearer {token}"},
         )
 
@@ -334,3 +334,108 @@ class TestTrackingRoutes:
         response = await client.get("/api/tracking/")
 
         assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_tracking_data_integrity(
+        self, client: AsyncClient, test_user, clean_db
+    ):
+        """Test status-based data integrity and auto-dates"""
+        token = await self.get_auth_token(client, test_user)
+
+        movie = await media_crud.create_movie(
+            db=clean_db,
+            obj_in=MovieCreate(title="Integrity Movie", description="Test"),
+        )
+
+        # 1. Create as PLANNED - should nullify rating/dates/progress
+        response = await client.post(
+            "/api/tracking/",
+            json={
+                "media_id": movie.id,
+                "media_type": "movie",
+                "status": "planned",
+                "rating": 10,
+                "progress": 5,
+                "priority": "high",
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 201
+        data = response.json()
+        assert data["status"] == "planned"
+        assert data["rating"] is None
+        assert data["progress"] == 0
+        assert data["priority"] == "high"
+        assert data["start_date"] is None
+
+        # 2. Update to IN_PROGRESS - should set start_date, clear priority
+        response = await client.patch(
+            f"/api/tracking/{movie.id}",
+            json={"status": "in_progress"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "in_progress"
+        assert data["start_date"] is not None
+        assert data["priority"] is None
+
+        # 3. Update to COMPLETED - should set end_date
+        response = await client.patch(
+            f"/api/tracking/{movie.id}",
+            json={"status": "completed", "rating": 9},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "completed"
+        assert data["end_date"] is not None
+        assert data["rating"] == 9
+
+        # 4. Update back to PLANNED - should nullify everything
+        response = await client.patch(
+            f"/api/tracking/{movie.id}",
+            json={"status": "planned"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "planned"
+        assert data["rating"] is None
+        assert data["end_date"] is None
+        assert data["start_date"] is None
+
+    @pytest.mark.asyncio
+    async def test_priority_sorting(self, client: AsyncClient, test_user, clean_db):
+        """Test sorting by priority"""
+        token = await self.get_auth_token(client, test_user)
+
+        # Create 3 items with different priorities
+        priorities = ["low", "high", "mid"]
+        for i, p in enumerate(priorities):
+            movie = await media_crud.create_movie(
+                db=clean_db,
+                obj_in=MovieCreate(title=f"Sort Movie {i}", description="Test"),
+            )
+            await client.post(
+                "/api/tracking/",
+                json={
+                    "media_id": movie.id,
+                    "media_type": "movie",
+                    "status": "planned",
+                    "priority": p,
+                },
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        # Get sorted by priority
+        response = await client.get(
+            "/api/tracking/?status=planned&sort_by=priority",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 3
+        assert data[0]["priority"] == "high"
+        assert data[1]["priority"] == "mid"
+        assert data[2]["priority"] == "low"
