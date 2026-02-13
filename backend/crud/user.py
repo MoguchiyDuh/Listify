@@ -76,19 +76,24 @@ class CRUDUser(CRUDBase[User]):
     async def authenticate(
         self, db: AsyncSession, *, username: str, password: str
     ) -> Optional[User]:
-        """Authenticate user by username and password"""
+        """Authenticate user by username/email and password"""
         logger.debug(f"Authenticating user: {username}")
 
+        # Try to find by username
         user = await self.get_by_username(db, username=username)
         if not user:
-            logger.warning(f"User not found: {username}")
+            # Try to find by email
+            user = await self.get_by_email(db, email=username)
+
+        if not user:
+            logger.warning(f"User not found with identifier: {username}")
             return None
 
         if not verify_password(password, user.hashed_password):
-            logger.warning(f"Invalid password for user: {username}")
+            logger.warning(f"Invalid password for user: {user.username}")
             return None
 
-        logger.info(f"User authenticated successfully: {username}")
+        logger.info(f"User authenticated successfully: {user.username}")
         return user
 
     def is_active(self, user: User) -> bool:
