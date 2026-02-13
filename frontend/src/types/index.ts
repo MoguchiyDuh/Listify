@@ -2,6 +2,8 @@ export type MediaType = "movie" | "series" | "anime" | "manga" | "book" | "game"
 
 export type TrackingStatus = "planned" | "in_progress" | "completed" | "dropped" | "on_hold";
 
+export type TrackingPriority = "low" | "mid" | "high";
+
 export type MediaStatus = "airing" | "finished" | "upcoming" | "cancelled";
 
 export type AgeRating = "G" | "PG" | "PG-13" | "R" | "R+" | "Rx" | "NC-17" | "Unknown";
@@ -84,6 +86,7 @@ export interface Tracking {
   media_id: number;
   media_type: MediaType;
   status: TrackingStatus;
+  priority?: TrackingPriority;
   rating?: number;
   progress: number;
   start_date?: string;
@@ -97,6 +100,7 @@ export interface TrackingCreate {
   media_id: number;
   media_type: MediaType;
   status: TrackingStatus;
+  priority?: TrackingPriority;
   rating?: number;
   progress?: number;
   start_date?: string;
@@ -107,6 +111,7 @@ export interface TrackingCreate {
 
 export interface TrackingUpdate {
   status?: TrackingStatus;
+  priority?: TrackingPriority;
   rating?: number;
   progress?: number;
   start_date?: string;

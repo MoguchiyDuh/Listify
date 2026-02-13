@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import List, Optional
 
-from core.cache import cached
+from core.cache import cache, cached
 from core.config import settings
 from models import PlatformEnum
 from schemas import GameCreate

@@ -3,7 +3,7 @@ from typing import Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from models import MediaTypeEnum, TrackingStatusEnum
+from models import MediaTypeEnum, TrackingPriorityEnum, TrackingStatusEnum
 from schemas import (
     AnimeResponse,
     BookResponse,
@@ -18,6 +18,7 @@ class TrackingBase(BaseModel):
     """Base schema for tracking"""
 
     status: TrackingStatusEnum
+    priority: Optional[TrackingPriorityEnum] = None
     rating: Optional[float] = Field(None, ge=0, le=10)
     progress: int = 0
     start_date: Optional[date] = None
@@ -37,6 +38,7 @@ class TrackingUpdate(BaseModel):
     """Schema for updating tracking entry"""
 
     status: Optional[TrackingStatusEnum] = None
+    priority: Optional[TrackingPriorityEnum] = None
     rating: Optional[float] = Field(None, ge=0, le=10)
     progress: Optional[int] = None
     start_date: Optional[date] = None

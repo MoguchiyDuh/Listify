@@ -12,6 +12,7 @@ import {
   BarChart3,
   LogOut,
   Search,
+  LayoutGrid,
 } from "lucide-react";
 
 export function Layout() {
@@ -28,6 +29,7 @@ export function Layout() {
     { to: "/search", icon: Search, label: "Search" },
     { to: "/favorites", icon: Star, label: "Favorites" },
     { divider: true },
+    { to: "/library", icon: LayoutGrid, label: "My Library" },
     { to: "/movies", icon: Film, label: "Movies" },
     { to: "/series", icon: Tv, label: "Series" },
     { to: "/anime", icon: Sparkles, label: "Anime" },

@@ -39,6 +39,20 @@ export function MediaCard({ media, tracking, onAddToList, onClick, adding }: Med
     }
   };
 
+  const getPriorityTag = () => {
+    if (!tracking?.priority) return null;
+    switch (tracking.priority) {
+      case "low":
+        return { text: "LOW", color: "bg-blue-500/10 text-blue-400 border border-blue-500/20" };
+      case "mid":
+        return { text: "MID", color: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20" };
+      case "high":
+        return { text: "HIGH", color: "bg-red-500/10 text-red-400 border border-red-500/20" };
+      default:
+        return null;
+    }
+  };
+
   const getProgressLabel = () => {
     switch (media.media_type) {
       case "game":
@@ -61,6 +75,7 @@ export function MediaCard({ media, tracking, onAddToList, onClick, adding }: Med
   };
 
   const statusTag = getStatusTag();
+  const priorityTag = getPriorityTag();
 
   return (
     <Card className="overflow-hidden hover:border-primary/50 transition-colors cursor-pointer" onClick={onClick}>
@@ -114,6 +129,13 @@ export function MediaCard({ media, tracking, onAddToList, onClick, adding }: Med
           {tracking && (
             <span className={`${getTrackingStatusColor(tracking.status)} px-2 py-0.5 rounded-full text-xs font-medium capitalize`}>
               {tracking.status.replace("_", " ")}
+            </span>
+          )}
+
+          {/* Priority tag */}
+          {priorityTag && (
+            <span className={`${priorityTag.color} px-2 py-0.5 rounded-full text-xs font-bold`}>
+              {priorityTag.text}
             </span>
           )}
 

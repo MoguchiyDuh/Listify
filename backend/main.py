@@ -87,7 +87,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 @app.middleware("http")
 async def csrf_middleware(request: Request, call_next):
     """Simple CSRF protection middleware using double-submit cookie pattern"""
-    if request.method in ["GET", "HEAD", "OPTIONS", "TRACE"]:
+    if settings.TESTING or request.method in ["GET", "HEAD", "OPTIONS", "TRACE"]:
         response: Response = await call_next(request)
         # Set CSRF cookie if not present
         if not request.cookies.get("csrf_token"):

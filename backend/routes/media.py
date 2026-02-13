@@ -59,7 +59,7 @@ async def upload_image(
     file_ext = file.filename.split(".")[-1].lower()
     unique_filename = f"{uuid.uuid4()}.{file_ext}"
 
-    static_dir = Path(__file__).parent.parent.parent / "static" / "images"
+    static_dir = Path(__file__).parent.parent / "static" / "images"
     static_dir.mkdir(parents=True, exist_ok=True)
 
     file_path = static_dir / unique_filename

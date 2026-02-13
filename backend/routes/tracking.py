@@ -33,8 +33,9 @@ async def create_tracking(
 
 @router.get("/", response_model=List[TrackingResponse])
 async def get_user_tracking(
-    status_filter: Optional[TrackingStatusEnum] = None,
+    status: Optional[TrackingStatusEnum] = None,
     media_type: Optional[MediaTypeEnum] = None,
+    sort_by: Optional[str] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     db: AsyncSession = Depends(get_db),
@@ -43,14 +44,15 @@ async def get_user_tracking(
     """Get all tracking entries for current user"""
     logger.debug(
         f"User {current_user.username} fetching tracking "
-        f"(status: {status_filter}, type: {media_type})"
+        f"(status: {status}, type: {media_type}, sort_by: {sort_by})"
     )
 
     return await tracking_crud.get_by_user(
         db,
         user_id=current_user.id,
-        status=status_filter,
+        status=status,
         media_type=media_type,
+        sort_by=sort_by,
         skip=skip,
         limit=limit,
     )
@@ -112,6 +114,7 @@ async def get_tracking_by_media(
 
 
 @router.put("/{media_id}", response_model=TrackingResponse)
+@router.patch("/{media_id}", response_model=TrackingResponse)
 async def update_tracking(
     media_id: int,
     tracking_update: TrackingUpdate,

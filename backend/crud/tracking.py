@@ -1,12 +1,20 @@
+from datetime import date
 from typing import List, Optional
 
 from pydantic import BaseModel
-from sqlalchemy import and_, select
+from sqlalchemy import and_, case, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import contains_eager, joinedload
 
 from core.exceptions import AlreadyExists
-from models import Media, MediaTag, MediaTypeEnum, Tracking, TrackingStatusEnum
+from models import (
+    Media,
+    MediaTag,
+    MediaTypeEnum,
+    Tracking,
+    TrackingPriorityEnum,
+    TrackingStatusEnum,
+)
 
 from .base import CRUDBase, logger
 from .media import media_crud
@@ -41,13 +49,14 @@ class CRUDTracking(CRUDBase[Tracking]):
         user_id: int,
         status: Optional[TrackingStatusEnum] = None,
         media_type: Optional[MediaTypeEnum] = None,
+        sort_by: Optional[str] = None,
         skip: int = 0,
         limit: int = 100,
     ) -> List[Tracking]:
         """Get all tracking entries for a user, optionally filtered"""
         logger.debug(
             f"Getting tracking for user_id: {user_id} "
-            f"(status: {status}, media_type: {media_type}, skip: {skip}, limit: {limit})"
+            f"(status: {status}, media_type: {media_type}, sort_by: {sort_by}, skip: {skip}, limit: {limit})"
         )
 
         stmt = (
@@ -65,6 +74,36 @@ class CRUDTracking(CRUDBase[Tracking]):
 
         if media_type:
             stmt = stmt.filter(Tracking.media_type == media_type)
+
+        # Apply sorting
+        if sort_by == "priority":
+            # Map priority Enum to numeric values for sorting
+            priority_order = case(
+                (Tracking.priority == TrackingPriorityEnum.HIGH, 3),
+                (Tracking.priority == TrackingPriorityEnum.MID, 2),
+                (Tracking.priority == TrackingPriorityEnum.LOW, 1),
+                else_=0,
+            )
+            stmt = stmt.order_by(desc(priority_order), Tracking.id.desc())
+        elif sort_by == "rating":
+            stmt = stmt.order_by(desc(Tracking.rating), Tracking.id.desc())
+        elif sort_by == "title":
+            stmt = stmt.join(Tracking.media).order_by(Media.title.asc(), Tracking.id.desc())
+        elif sort_by == "created_at":
+            # Using ID as proxy for creation date
+            stmt = stmt.order_by(Tracking.id.desc())
+        else:
+            # Default sort for Planned is Priority, otherwise ID
+            if status == TrackingStatusEnum.PLANNED:
+                priority_order = case(
+                    (Tracking.priority == TrackingPriorityEnum.HIGH, 3),
+                    (Tracking.priority == TrackingPriorityEnum.MID, 2),
+                    (Tracking.priority == TrackingPriorityEnum.LOW, 1),
+                    else_=0,
+                )
+                stmt = stmt.order_by(desc(priority_order), Tracking.id.desc())
+            else:
+                stmt = stmt.order_by(Tracking.id.desc())
 
         result = await db.execute(stmt.offset(skip).limit(limit))
         return list(result.unique().scalars().all())
@@ -99,6 +138,41 @@ class CRUDTracking(CRUDBase[Tracking]):
         result = await db.execute(stmt.offset(skip).limit(limit))
         return list(result.unique().scalars().all())
 
+    async def _apply_data_integrity_rules(self, db_obj: Tracking) -> None:
+        """
+        Apply status-based data integrity rules:
+        - Planned: Nullify rating, progress, dates.
+        - In Progress: Set start_date if null.
+        - Completed/Dropped: Set end_date if null.
+        - Priority: Only for Planned.
+        """
+        # Rule: Priority is ONLY for Planned
+        if db_obj.status != TrackingStatusEnum.PLANNED:
+            db_obj.priority = None
+
+        # Rule: Planned has no rating, progress, or dates
+        if db_obj.status == TrackingStatusEnum.PLANNED:
+            db_obj.rating = None
+            db_obj.progress = 0
+            db_obj.start_date = None
+            db_obj.end_date = None
+
+        # Rule: Auto-set start_date for in_progress
+        if db_obj.status == TrackingStatusEnum.IN_PROGRESS and db_obj.start_date is None:
+            db_obj.start_date = date.today()
+
+        # Rule: Auto-set end_date for completed/dropped
+        if db_obj.status in [TrackingStatusEnum.COMPLETED, TrackingStatusEnum.DROPPED]:
+            if db_obj.end_date is None:
+                db_obj.end_date = date.today()
+
+        # Rule: Moving AWAY from completed/dropped nullifies end_date
+        if db_obj.status not in [
+            TrackingStatusEnum.COMPLETED,
+            TrackingStatusEnum.DROPPED,
+        ]:
+            db_obj.end_date = None
+
     async def create(
         self, db: AsyncSession, *, obj_in: BaseModel, user_id: int
     ) -> Tracking:
@@ -117,9 +191,13 @@ class CRUDTracking(CRUDBase[Tracking]):
                 f"Tracking already exists for user_id: {user_id}, "
                 f"media_id: {obj_data['media_id']}"
             )
-            raise AlreadyExists("Tracking entry", str(obj_data['media_id']))
+            raise AlreadyExists("Tracking entry", str(obj_data["media_id"]))
 
         tracking = Tracking(**obj_data)
+
+        # Apply data integrity rules before saving
+        await self._apply_data_integrity_rules(tracking)
+
         db.add(tracking)
         await db.commit()
 
@@ -147,8 +225,10 @@ class CRUDTracking(CRUDBase[Tracking]):
         obj_data = obj_in.model_dump(exclude_unset=True)
 
         for field, value in obj_data.items():
-            if value is not None:
-                setattr(tracking, field, value)
+            setattr(tracking, field, value)
+
+        # Apply data integrity rules after applying updates
+        await self._apply_data_integrity_rules(tracking)
 
         db.add(tracking)
         await db.commit()

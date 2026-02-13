@@ -16,6 +16,11 @@ services:
       - DATABASE_URL=sqlite:////app/data/listify.db
       - REDIS_URL=redis://redis:6379
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:8080}
+      - TMDB_API_KEY=${TMDB_API_KEY}
+      - IGDB_CLIENT_ID=${IGDB_CLIENT_ID}
+      - IGDB_CLIENT_SECRET=${IGDB_CLIENT_SECRET}
+      - IGDB_ACCESS_TOKEN=${IGDB_ACCESS_TOKEN}
+      - IGDB_TOKEN_EXPIRES_AT=${IGDB_TOKEN_EXPIRES_AT}
     volumes:
       - db_data:/app/data
       - static_data:/app/static

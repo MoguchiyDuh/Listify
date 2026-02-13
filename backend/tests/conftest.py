@@ -4,14 +4,17 @@ from pathlib import Path
 from types import FunctionType
 from typing import AsyncGenerator
 
+# Add parent directory to path for imports
+sys.path.append(str(Path(__file__).parent.parent))
+
+from core.config import settings
+settings.TESTING = True
+
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession,
                                     async_sessionmaker, create_async_engine)
-
-# Add parent directory to path for imports
-sys.path.append(str(Path(__file__).parent.parent))
 
 from core.database import Base, get_db
 from crud import user_crud

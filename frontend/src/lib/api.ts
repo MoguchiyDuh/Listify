@@ -308,12 +308,14 @@ class ApiClient {
   async getTracking(
     status?: TrackingStatus,
     mediaType?: MediaType,
+    sortBy?: string,
     skip = 0,
     limit = 100
   ): Promise<Tracking[]> {
     const params = new URLSearchParams({ skip: skip.toString(), limit: limit.toString() });
     if (status) params.append("status", status);
     if (mediaType) params.append("media_type", mediaType);
+    if (sortBy) params.append("sort_by", sortBy);
     return this.request<Tracking[]>(`/api/tracking?${params}`);
   }
 
