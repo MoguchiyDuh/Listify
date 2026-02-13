@@ -11,8 +11,7 @@ echo "Starting Listify..."
 # Start backend
 echo "Starting backend..."
 cd "$SCRIPT_DIR/backend"
-source .venv/bin/activate
-python main.py > "$SCRIPT_DIR/backend.log" 2>&1 &
+uv run python main.py > "$SCRIPT_DIR/backend.log" 2>&1 &
 echo $! > "$PID_DIR/backend.pid"
 echo "Backend started (PID: $(cat $PID_DIR/backend.pid))"
 

@@ -8,7 +8,7 @@ from models import MediaTag, MediaTypeEnum, Tag
 
 from .base import CRUDBase, logger
 
-logger = logger.getChild("tag")
+logger = logger.bind(module="tag")
 
 
 class CRUDTag(CRUDBase[Tag]):
@@ -38,13 +38,11 @@ class CRUDTag(CRUDBase[Tag]):
         """Get existing tag or create new one"""
         name = name.strip()
 
-        # Check if tag exists (case-insensitive)
         existing_tag = await self.get_by_name(db, name=name)
         if existing_tag:
             logger.debug(f"Found existing tag: {existing_tag.name}")
             return existing_tag
 
-        # Create new tag
         slug = self._slugify(name)
         logger.info(f"Creating new tag: {name} (slug: {slug})")
 
@@ -95,7 +93,6 @@ class CRUDTag(CRUDBase[Tag]):
 
         logger.info(f"Adding {len(tag_names)} tags to media_id: {media_id}")
 
-        # Remove duplicates (case-insensitive) and empty strings
         seen = set()
         unique_names = []
         for name in tag_names:
@@ -106,11 +103,9 @@ class CRUDTag(CRUDBase[Tag]):
 
         tags = []
         for tag_name in unique_names:
-            # Get or create tag
             tag = await self.get_or_create(db, name=tag_name)
             tags.append(tag)
 
-            # Check if association already exists
             result = await db.execute(
                 select(MediaTag).filter(
                     MediaTag.media_id == media_id, MediaTag.tag_id == tag.id
@@ -119,7 +114,6 @@ class CRUDTag(CRUDBase[Tag]):
             existing = result.scalar_one_or_none()
 
             if not existing:
-                # Create association
                 media_tag = MediaTag(
                     media_id=media_id, tag_id=tag.id, media_type=media_type
                 )
@@ -159,10 +153,8 @@ class CRUDTag(CRUDBase[Tag]):
         """Update tags for media item (remove old, add new)"""
         logger.info(f"Updating tags for media_id: {media_id}")
 
-        # Remove all existing tags
         await self.remove_tags_from_media(db, media_id=media_id)
 
-        # Add new tags
         return await self.add_tags_to_media(
             db, media_id=media_id, media_type=media_type, tag_names=tag_names
         )

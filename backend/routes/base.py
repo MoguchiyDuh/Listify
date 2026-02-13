@@ -1,3 +1,3 @@
-from core.logger import setup_logger
+from core.logger import get_logger
 
-logger = setup_logger("api")
+logger = get_logger("api")

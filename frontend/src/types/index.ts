@@ -136,6 +136,63 @@ export interface RegisterRequest {
   password: string;
 }
 
+export interface MediaUpdate {
+  title?: string;
+  description?: string;
+  release_date?: string;
+  cover_image_url?: string;
+  tags?: string[];
+}
+
+export interface MovieUpdate extends MediaUpdate {
+  runtime?: number;
+  director?: string;
+}
+
+export interface SeriesUpdate extends MediaUpdate {
+  total_episodes?: number;
+  total_seasons?: number;
+  status?: MediaStatus;
+}
+
+export interface AnimeUpdate extends MediaUpdate {
+  original_title?: string;
+  total_episodes?: number;
+  studios?: string[];
+  status?: MediaStatus;
+  age_rating?: AgeRating;
+}
+
+export interface MangaUpdate extends MediaUpdate {
+  original_title?: string;
+  total_chapters?: number;
+  total_volumes?: number;
+  authors?: string[];
+  status?: MediaStatus;
+  age_rating?: AgeRating;
+}
+
+export interface BookUpdate extends MediaUpdate {
+  author?: string;
+  isbn?: string;
+  pages?: number;
+  publisher?: string;
+}
+
+export interface GameUpdate extends MediaUpdate {
+  platforms?: Platform[];
+  developer?: string;
+  publisher?: string;
+}
+
+export type AnyMediaUpdate =
+  | MovieUpdate
+  | SeriesUpdate
+  | AnimeUpdate
+  | MangaUpdate
+  | BookUpdate
+  | GameUpdate;
+
 export interface Token {
   access_token: string;
   token_type: string;

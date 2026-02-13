@@ -3,10 +3,10 @@ from typing import Any, List, Optional
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
-from core.logger import setup_logger
+from core.logger import get_logger
 from models import MediaTypeEnum
 
-logger = setup_logger("schemas")
+logger = get_logger("schemas")
 
 
 class MediaBase(BaseModel):

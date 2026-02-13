@@ -6,7 +6,7 @@ from sqlalchemy.orm import declarative_base
 from .config import settings
 
 async_engine = create_async_engine(
-    settings.DATABASE_URL,
+    settings.database_url_async,
     connect_args=(
         {"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {}
     ),
@@ -17,6 +17,7 @@ AsyncSessionLocal = async_sessionmaker(
     async_engine,
     class_=AsyncSession,
     expire_on_commit=False,
+    autoflush=False,
 )
 
 Base = declarative_base()
@@ -25,4 +26,7 @@ Base = declarative_base()
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Dependency to get async database session."""
     async with AsyncSessionLocal() as session:
-        yield session
+        try:
+            yield session
+        finally:
+            await session.close()

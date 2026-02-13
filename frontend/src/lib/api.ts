@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import type {
   User,
   LoginRequest,
@@ -14,35 +15,73 @@ import type {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
+function getCookie(name: string): string | null {
+  const nameLenPlus = name.length + 1;
+  return (
+    document.cookie
+      .split(";")
+      .map((c) => c.trim())
+      .filter((cookie) => {
+        return cookie.substring(0, nameLenPlus) === `${name}=`;
+      })
+      .map((cookie) => {
+        return decodeURIComponent(cookie.substring(nameLenPlus));
+      })[0] || null
+  );
+}
+
 class ApiClient {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
+    const csrfToken = getCookie("csrf_token");
+
     const config: RequestInit = {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
         ...options.headers,
       },
       credentials: "include", // Include cookies
     };
 
-    const response = await fetch(url, config);
+    try {
+      const response = await fetch(url, config);
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({
-        detail: "An error occurred",
-      }));
-      throw new Error(error.detail || `HTTP ${response.status}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({
+          detail: "An unexpected error occurred",
+        }));
+
+        const errorMessage = errorData.detail || `HTTP Error ${response.status}`;
+
+        if (response.status === 401) {
+          // Redirect to login if unauthorized, but only if not already on login/register
+          if (!window.location.pathname.includes("/login") && !window.location.pathname.includes("/register")) {
+            window.location.href = "/login";
+          }
+        } else if (response.status >= 400) {
+          // Show toast for other errors
+          toast.error(errorMessage);
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      if (response.status === 204) {
+        return {} as T;
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error instanceof TypeError && error.message === "Failed to fetch") {
+        toast.error("Network error: Cannot connect to the server.");
+      }
+      throw error;
     }
-
-    if (response.status === 204) {
-      return {} as T;
-    }
-
-    return response.json();
   }
 
   // Auth endpoints
@@ -113,6 +152,48 @@ class ApiClient {
   async createGame(data: any): Promise<AnyMedia> {
     return this.request<AnyMedia>("/api/media/games", {
       method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateMovie(id: number, data: any): Promise<AnyMedia> {
+    return this.request<AnyMedia>(`/api/media/movies/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateSeries(id: number, data: any): Promise<AnyMedia> {
+    return this.request<AnyMedia>(`/api/media/series/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateAnime(id: number, data: any): Promise<AnyMedia> {
+    return this.request<AnyMedia>(`/api/media/anime/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateManga(id: number, data: any): Promise<AnyMedia> {
+    return this.request<AnyMedia>(`/api/media/manga/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateBook(id: number, data: any): Promise<AnyMedia> {
+    return this.request<AnyMedia>(`/api/media/books/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateGame(id: number, data: any): Promise<AnyMedia> {
+    return this.request<AnyMedia>(`/api/media/games/${id}`, {
+      method: "PUT",
       body: JSON.stringify(data),
     });
   }
@@ -276,9 +357,14 @@ class ApiClient {
     const formData = new FormData();
     formData.append("file", file);
 
+    const csrfToken = getCookie("csrf_token");
+
     const response = await fetch(`${API_BASE_URL}/api/media/upload-image`, {
       method: "POST",
       body: formData,
+      headers: {
+        ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+      },
       credentials: "include",
     });
 

@@ -40,17 +40,14 @@ echo ""
 echo "[3/6] Setting up backend..."
 cd "$SCRIPT_DIR/backend"
 
-if [ ! -d ".venv" ]; then
-    echo "Creating Python virtual environment..."
-    python3 -m venv .venv
+if ! command -v uv &> /dev/null; then
+    echo "uv not found. Installing uv..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    source $HOME/.cargo/env
 fi
 
-echo "Activating virtual environment..."
-source .venv/bin/activate
-
-echo "Installing Python dependencies..."
-pip install --upgrade pip > /dev/null
-pip install -r requirements.txt > /dev/null
+echo "Installing Python dependencies using uv..."
+uv sync
 
 # Check if .env exists
 if [ ! -f ".env" ]; then
@@ -61,7 +58,7 @@ fi
 
 # Run migrations
 echo "Running database migrations..."
-alembic upgrade head
+uv run alembic upgrade head
 
 echo "Backend setup complete"
 

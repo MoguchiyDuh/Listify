@@ -12,7 +12,7 @@ from schemas import TrackingCreate, TrackingResponse, TrackingUpdate
 from .base import logger
 from .deps import get_current_user
 
-logger = logger.getChild("tracking")
+logger = logger.bind(module="tracking")
 
 router = APIRouter()
 

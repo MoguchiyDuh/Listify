@@ -5,15 +5,18 @@ import type { Tracking, TrackingStatus } from "../types";
 
 interface EditTrackingDialogProps {
   tracking: Tracking | null;
-  onConfirm: (data: {
-    status: TrackingStatus;
-    rating?: number;
-    progress?: number;
-    start_date?: string;
-    end_date?: string;
-    favorite: boolean;
-    notes?: string;
-  }) => void;
+  onConfirm: (
+    trackingData: {
+      status: TrackingStatus;
+      rating?: number;
+      progress?: number;
+      start_date?: string;
+      end_date?: string;
+      favorite: boolean;
+      notes?: string;
+    },
+    mediaData?: any
+  ) => void;
   onCancel: () => void;
   onDelete?: () => void;
   isOpen: boolean;
@@ -26,6 +29,9 @@ export function EditTrackingDialog({
   onDelete,
   isOpen
 }: EditTrackingDialogProps) {
+  const [activeTab, setActiveTab] = useState<"tracking" | "media">("tracking");
+
+  // Tracking state
   const [status, setStatus] = useState<TrackingStatus>("planned");
   const [rating, setRating] = useState<string>("");
   const [progress, setProgress] = useState<string>("");
@@ -33,6 +39,28 @@ export function EditTrackingDialog({
   const [endDate, setEndDate] = useState<string>("");
   const [favorite, setFavorite] = useState(false);
   const [notes, setNotes] = useState("");
+
+  // Media state (for custom media)
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [mediaReleaseDate, setMediaReleaseDate] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+
+  // Type-specific media fields
+  const [runtime, setRuntime] = useState("");
+  const [director, setDirector] = useState("");
+  const [totalEpisodes, setTotalEpisodes] = useState("");
+  const [totalSeasons, setTotalSeasons] = useState("");
+  const [totalChapters, setTotalChapters] = useState("");
+  const [totalVolumes, setTotalVolumes] = useState("");
+  const [originalTitle, setOriginalTitle] = useState("");
+  const [author, setAuthor] = useState("");
+  const [authors, setAuthors] = useState("");
+  const [isbn, setIsbn] = useState("");
+  const [pages, setPages] = useState("");
+  const [publisher, setPublisher] = useState("");
+  const [developer, setDeveloper] = useState("");
+  const [platforms, setPlatforms] = useState("");
 
   useEffect(() => {
     if (tracking) {
@@ -43,13 +71,37 @@ export function EditTrackingDialog({
       setEndDate(tracking.end_date || "");
       setFavorite(tracking.favorite);
       setNotes(tracking.notes || "");
+
+      if (tracking.media && tracking.media.is_custom) {
+        const m = tracking.media as any;
+        setTitle(m.title || "");
+        setDescription(m.description || "");
+        setMediaReleaseDate(m.release_date || "");
+        setCoverImageUrl(m.cover_image_url || "");
+
+        // Set type-specific fields
+        setRuntime(m.runtime?.toString() || "");
+        setDirector(m.director || "");
+        setTotalEpisodes(m.total_episodes?.toString() || "");
+        setTotalSeasons(m.total_seasons?.toString() || "");
+        setTotalChapters(m.total_chapters?.toString() || "");
+        setTotalVolumes(m.total_volumes?.toString() || "");
+        setOriginalTitle(m.original_title || "");
+        setAuthor(m.author || "");
+        setAuthors(m.authors?.join(", ") || "");
+        setIsbn(m.isbn || "");
+        setPages(m.pages?.toString() || "");
+        setPublisher(m.publisher || "");
+        setDeveloper(m.developer || "");
+        setPlatforms(m.platforms?.join(", ") || "");
+      }
     }
   }, [tracking]);
 
   if (!isOpen || !tracking) return null;
 
   const handleSubmit = () => {
-    onConfirm({
+    const trackingData = {
       status,
       rating: rating ? parseFloat(rating) : undefined,
       progress: progress ? parseInt(progress) : undefined,
@@ -57,7 +109,46 @@ export function EditTrackingDialog({
       end_date: endDate || undefined,
       favorite,
       notes: notes || undefined,
-    });
+    };
+
+    let mediaData: any = undefined;
+    if (tracking.media?.is_custom) {
+      mediaData = {
+        title,
+        description: description || undefined,
+        release_date: mediaReleaseDate || undefined,
+        cover_image_url: coverImageUrl || undefined,
+      };
+
+      // Add type-specific fields
+      const type = tracking.media_type;
+      if (type === "movie") {
+        mediaData.runtime = runtime ? parseInt(runtime) : undefined;
+        mediaData.director = director || undefined;
+      } else if (type === "series") {
+        mediaData.total_episodes = totalEpisodes ? parseInt(totalEpisodes) : undefined;
+        mediaData.total_seasons = totalSeasons ? parseInt(totalSeasons) : undefined;
+      } else if (type === "anime") {
+        mediaData.original_title = originalTitle || undefined;
+        mediaData.total_episodes = totalEpisodes ? parseInt(totalEpisodes) : undefined;
+      } else if (type === "manga") {
+        mediaData.original_title = originalTitle || undefined;
+        mediaData.total_chapters = totalChapters ? parseInt(totalChapters) : undefined;
+        mediaData.total_volumes = totalVolumes ? parseInt(totalVolumes) : undefined;
+        mediaData.authors = authors ? authors.split(',').map(a => a.trim()) : undefined;
+      } else if (type === "book") {
+        mediaData.author = author || undefined;
+        mediaData.isbn = isbn || undefined;
+        mediaData.pages = pages ? parseInt(pages) : undefined;
+        mediaData.publisher = publisher || undefined;
+      } else if (type === "game") {
+        mediaData.developer = developer || undefined;
+        mediaData.publisher = publisher || undefined;
+        mediaData.platforms = platforms ? platforms.split(',').map(p => p.trim()) : undefined;
+      }
+    }
+
+    onConfirm(trackingData, mediaData);
   };
 
   const statuses: { value: TrackingStatus; label: string }[] = [
@@ -71,98 +162,332 @@ export function EditTrackingDialog({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-card border border-border rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">Edit Tracking</h2>
+        <h2 className="text-xl font-bold mb-4">Edit Entry</h2>
+        
+        {tracking.media?.is_custom && (
+          <div className="flex border-b border-border mb-4">
+            <button
+              className={`px-4 py-2 text-sm font-medium ${activeTab === "tracking" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}
+              onClick={() => setActiveTab("tracking")}
+            >
+              Tracking
+            </button>
+            <button
+              className={`px-4 py-2 text-sm font-medium ${activeTab === "media" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}
+              onClick={() => setActiveTab("media")}
+            >
+              Media Details
+            </button>
+          </div>
+        )}
+
         <p className="text-sm text-muted-foreground mb-4">{tracking.media?.title}</p>
 
-        <div className="space-y-4">
-          {/* Status */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Status</label>
-            <div className="flex gap-2 flex-wrap">
-              {statuses.map((s) => (
-                <Button
-                  key={s.value}
-                  variant={status === s.value ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setStatus(s.value)}
-                >
-                  {s.label}
-                </Button>
-              ))}
+        {activeTab === "tracking" ? (
+          <div className="space-y-4">
+            {/* Status */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Status</label>
+              <div className="flex gap-2 flex-wrap">
+                {statuses.map((s) => (
+                  <Button
+                    key={s.value}
+                    variant={status === s.value ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setStatus(s.value)}
+                  >
+                    {s.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Progress */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Progress</label>
+              <Input
+                type="number"
+                min="0"
+                value={progress}
+                onChange={(e) => setProgress(e.target.value)}
+                placeholder="Episodes/Chapters/Pages"
+              />
+            </div>
+
+            {/* Rating */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Rating (0-10)</label>
+              <Input
+                type="number"
+                min="0"
+                max="10"
+                step="0.1"
+                value={rating}
+                onChange={(e) => setRating(e.target.value)}
+                placeholder="0-10"
+              />
+            </div>
+
+            {/* Start Date */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Start Date</label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+
+            {/* End Date */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">End Date</label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Notes</label>
+              <textarea
+                className="w-full min-h-[100px] px-3 py-2 bg-background border border-input rounded-md"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Your thoughts..."
+              />
+            </div>
+
+            {/* Favorite */}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="favorite-edit"
+                checked={favorite}
+                onChange={(e) => setFavorite(e.target.checked)}
+                className="w-4 h-4"
+              />
+              <label htmlFor="favorite-edit" className="text-sm font-medium">
+                Mark as favorite
+              </label>
             </div>
           </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Title *</label>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter title"
+                required
+              />
+            </div>
 
-          {/* Progress */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Progress</label>
-            <Input
-              type="number"
-              min="0"
-              value={progress}
-              onChange={(e) => setProgress(e.target.value)}
-              placeholder="Episodes/Chapters/Pages"
-            />
-          </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Description</label>
+              <textarea
+                className="w-full min-h-[100px] px-3 py-2 bg-background border border-input rounded-md"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Synopsis or description"
+              />
+            </div>
 
-          {/* Rating */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Rating (0-10)</label>
-            <Input
-              type="number"
-              min="0"
-              max="10"
-              step="0.1"
-              value={rating}
-              onChange={(e) => setRating(e.target.value)}
-              placeholder="0-10"
-            />
-          </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Release Date</label>
+              <Input
+                type="date"
+                value={mediaReleaseDate}
+                onChange={(e) => setMediaReleaseDate(e.target.value)}
+              />
+            </div>
 
-          {/* Start Date */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Start Date</label>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Cover Image URL</label>
+              <Input
+                value={coverImageUrl}
+                onChange={(e) => setCoverImageUrl(e.target.value)}
+                placeholder="https://..."
+              />
+            </div>
 
-          {/* End Date */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">End Date</label>
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
+            {/* Type-specific fields */}
+            {tracking.media_type === "movie" && (
+              <>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Runtime (minutes)</label>
+                  <Input
+                    type="number"
+                    value={runtime}
+                    onChange={(e) => setRuntime(e.target.value)}
+                    placeholder="120"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Director</label>
+                  <Input
+                    value={director}
+                    onChange={(e) => setDirector(e.target.value)}
+                    placeholder="Director name"
+                  />
+                </div>
+              </>
+            )}
 
-          {/* Notes */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Notes</label>
-            <textarea
-              className="w-full min-h-[100px] px-3 py-2 bg-background border border-input rounded-md"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Your thoughts..."
-            />
-          </div>
+            {tracking.media_type === "series" && (
+              <>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Total Episodes</label>
+                  <Input
+                    type="number"
+                    value={totalEpisodes}
+                    onChange={(e) => setTotalEpisodes(e.target.value)}
+                    placeholder="24"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Total Seasons</label>
+                  <Input
+                    type="number"
+                    value={totalSeasons}
+                    onChange={(e) => setTotalSeasons(e.target.value)}
+                    placeholder="2"
+                  />
+                </div>
+              </>
+            )}
 
-          {/* Favorite */}
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="favorite-edit"
-              checked={favorite}
-              onChange={(e) => setFavorite(e.target.checked)}
-              className="w-4 h-4"
-            />
-            <label htmlFor="favorite-edit" className="text-sm font-medium">
-              Mark as favorite
-            </label>
+            {tracking.media_type === "anime" && (
+              <>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Original Title</label>
+                  <Input
+                    value={originalTitle}
+                    onChange={(e) => setOriginalTitle(e.target.value)}
+                    placeholder="Japanese title"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Total Episodes</label>
+                  <Input
+                    type="number"
+                    value={totalEpisodes}
+                    onChange={(e) => setTotalEpisodes(e.target.value)}
+                    placeholder="12"
+                  />
+                </div>
+              </>
+            )}
+
+            {tracking.media_type === "manga" && (
+              <>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Original Title</label>
+                  <Input
+                    value={originalTitle}
+                    onChange={(e) => setOriginalTitle(e.target.value)}
+                    placeholder="Japanese title"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Total Chapters</label>
+                  <Input
+                    type="number"
+                    value={totalChapters}
+                    onChange={(e) => setTotalChapters(e.target.value)}
+                    placeholder="150"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Total Volumes</label>
+                  <Input
+                    type="number"
+                    value={totalVolumes}
+                    onChange={(e) => setTotalVolumes(e.target.value)}
+                    placeholder="20"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Authors (comma-separated)</label>
+                  <Input
+                    value={authors}
+                    onChange={(e) => setAuthors(e.target.value)}
+                    placeholder="Author 1, Author 2"
+                  />
+                </div>
+              </>
+            )}
+
+            {tracking.media_type === "book" && (
+              <>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Author</label>
+                  <Input
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                    placeholder="Author name"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">ISBN</label>
+                  <Input
+                    value={isbn}
+                    onChange={(e) => setIsbn(e.target.value)}
+                    placeholder="978-..."
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Pages</label>
+                  <Input
+                    type="number"
+                    value={pages}
+                    onChange={(e) => setPages(e.target.value)}
+                    placeholder="350"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Publisher</label>
+                  <Input
+                    value={publisher}
+                    onChange={(e) => setPublisher(e.target.value)}
+                    placeholder="Publisher name"
+                  />
+                </div>
+              </>
+            )}
+
+            {tracking.media_type === "game" && (
+              <>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Developer</label>
+                  <Input
+                    value={developer}
+                    onChange={(e) => setDeveloper(e.target.value)}
+                    placeholder="Developer name"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Publisher</label>
+                  <Input
+                    value={publisher}
+                    onChange={(e) => setPublisher(e.target.value)}
+                    placeholder="Publisher name"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Platforms (comma-separated)</label>
+                  <Input
+                    value={platforms}
+                    onChange={(e) => setPlatforms(e.target.value)}
+                    placeholder="PC, PlayStation, Xbox"
+                  />
+                </div>
+              </>
+            )}
           </div>
-        </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-2 mt-6">

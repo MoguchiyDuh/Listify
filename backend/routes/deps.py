@@ -14,7 +14,7 @@ from models import User
 
 from .base import logger
 
-logger = logger.getChild("deps")
+logger = logger.bind(module="deps")
 
 security = HTTPBearer(auto_error=False)
 

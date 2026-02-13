@@ -15,7 +15,6 @@ class Tag(Base):
     name = Column(String(100), nullable=False, unique=True, index=True)
     slug = Column(String(100), nullable=False, unique=True, index=True)
 
-    # Relationships
     media_associations = relationship(
         "MediaTag", back_populates="tag", cascade="all, delete-orphan"
     )
@@ -40,7 +39,6 @@ class MediaTag(Base):
 
     __table_args__ = (UniqueConstraint("media_id", "tag_id", name="uq_media_tag"),)
 
-    # Relationships
     media = relationship("Media", back_populates="tag_associations")
     tag = relationship("Tag", back_populates="media_associations")
 

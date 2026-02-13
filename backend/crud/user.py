@@ -8,7 +8,7 @@ from models import User
 
 from .base import CRUDBase, logger
 
-logger = logger.getChild("user")
+logger = logger.bind(module="user")
 
 
 class CRUDUser(CRUDBase[User]):
@@ -39,6 +39,7 @@ class CRUDUser(CRUDBase[User]):
         user = User(username=username, email=email, hashed_password=hashed_password)
 
         db.add(user)
+        await db.flush()
         await db.commit()
         await db.refresh(user)
 
@@ -65,6 +66,7 @@ class CRUDUser(CRUDBase[User]):
             user.hashed_password = hash_password(password)
 
         db.add(user)
+        await db.flush()
         await db.commit()
         await db.refresh(user)
 

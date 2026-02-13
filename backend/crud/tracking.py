@@ -9,8 +9,9 @@ from core.exceptions import AlreadyExists
 from models import Media, MediaTag, MediaTypeEnum, Tracking, TrackingStatusEnum
 
 from .base import CRUDBase, logger
+from .media import media_crud
 
-logger = logger.getChild("tracking")
+logger = logger.bind(module="tracking")
 
 
 class CRUDTracking(CRUDBase[Tracking]):
@@ -107,7 +108,6 @@ class CRUDTracking(CRUDBase[Tracking]):
         obj_data = obj_in.model_dump(exclude_unset=True)
         obj_data["user_id"] = user_id
 
-        # Check if tracking already exists
         existing = await self.get_by_user_and_media(
             db, user_id=user_id, media_id=obj_data["media_id"]
         )
@@ -123,7 +123,6 @@ class CRUDTracking(CRUDBase[Tracking]):
         db.add(tracking)
         await db.commit()
 
-        # Re-query with eager loading
         stmt = (
             select(Tracking)
             .options(
@@ -154,7 +153,6 @@ class CRUDTracking(CRUDBase[Tracking]):
         db.add(tracking)
         await db.commit()
 
-        # Re-query with eager loading
         stmt = (
             select(Tracking)
             .options(
@@ -184,7 +182,18 @@ class CRUDTracking(CRUDBase[Tracking]):
             )
             return False
 
+        # Check if media is custom and record it for cleanup
+        is_custom = tracking.media.is_custom
+        media_owner_id = tracking.media.created_by_id
+
         await db.delete(tracking)
+
+        if is_custom:
+            logger.info(f"Media {media_id} is custom, deleting it as well")
+            await media_crud.delete(
+                db, id=media_id, user_id=media_owner_id, commit=False
+            )
+
         await db.commit()
 
         logger.debug(f"Deleted tracking with id: {tracking.id}")
@@ -230,7 +239,6 @@ class CRUDTracking(CRUDBase[Tracking]):
             "favorites": len([e for e in all_entries if e.favorite]),
         }
 
-        # Calculate average rating
         rated_entries = [e for e in all_entries if e.rating is not None]
         stats["average_rating"] = (
             sum(e.rating for e in rated_entries) / len(rated_entries)

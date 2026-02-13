@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List, Optional, Type
 
 from pydantic import BaseModel
@@ -6,14 +7,15 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from core.exceptions import PermissionDenied
+from core.cache import cache
+from core.exceptions import AlreadyExists, PermissionDenied
 from models import (Anime, Book, Game, Manga, Media, MediaTag, MediaTypeEnum,
-                    Movie, Series, Tag)
+                    Movie, Series, Tag, Tracking)
 
 from .base import CRUDBase, logger
 from .tag import tag_crud
 
-logger = logger.getChild("media")
+logger = logger.bind(module="media")
 
 
 class CRUDMedia(CRUDBase[Media]):
@@ -135,11 +137,9 @@ class CRUDMedia(CRUDBase[Media]):
     ) -> Media:
         """Create media with automatic tag handling"""
         try:
-            # Extract tags from schema if present
             obj_data = obj_in.model_dump(exclude_unset=True)
             tags = obj_data.pop("tags", None)
 
-            # Check for duplicate if external_id and external_source are present
             external_id = obj_data.get("external_id")
             external_source = obj_data.get("external_source")
 
@@ -157,12 +157,31 @@ class CRUDMedia(CRUDBase[Media]):
                     )
                     return existing_media
 
-            # Set created_by_id if this is a custom entry
             is_custom = obj_data.get("is_custom", False)
             if is_custom and user_id:
+                # Duplicate check for custom media
+                stmt = select(Media).filter(
+                    Media.is_custom == True,
+                    Media.created_by_id == user_id,
+                    Media.media_type == media_type,
+                    Media.title.ilike(obj_data["title"]),
+                )
+
+                release_date = obj_data.get("release_date")
+                if release_date:
+                    stmt = stmt.filter(Media.release_date == release_date)
+                else:
+                    stmt = stmt.filter(Media.release_date.is_(None))
+
+                result = await db.execute(stmt)
+                if result.scalar_one_or_none():
+                    logger.warning(
+                        f"Custom media '{obj_data['title']}' already exists for user {user_id}"
+                    )
+                    raise AlreadyExists("Custom media", obj_data["title"])
+
                 obj_data["created_by_id"] = user_id
 
-            # Create media object
             logger.info(
                 f"Creating {media_type.value}: {obj_data.get('title', 'Unknown')}"
             )
@@ -170,7 +189,6 @@ class CRUDMedia(CRUDBase[Media]):
             db.add(media)
             await db.flush()  # Get the ID without committing
 
-            # Add tags if present
             if tags:
                 await tag_crud.add_tags_to_media(
                     db, media_id=media.id, media_type=media_type, tag_names=tags
@@ -178,10 +196,12 @@ class CRUDMedia(CRUDBase[Media]):
 
             await db.commit()
 
-            # Refresh the media object to get latest state
             await db.refresh(media)
 
-            # Re-query with eager loading to populate tag_associations
+            # Invalidate search cache for this source
+            if external_source:
+                await cache.clear_pattern(f"api:{external_source}:search:*")
+
             stmt = (
                 select(model_class)
                 .options(
@@ -274,10 +294,8 @@ class CRUDMedia(CRUDBase[Media]):
 
     def can_modify_media(self, media: Media, user_id: int) -> bool:
         """Check if user can modify this media"""
-        # Can't modify non-custom media (from external APIs)
         if not media.is_custom:
             return False
-        # Can only modify own custom media
         return media.created_by_id == user_id
 
     async def _update_with_tags(
@@ -295,18 +313,15 @@ class CRUDMedia(CRUDBase[Media]):
         try:
             logger.info(f"Updating {media_type.value} with id: {media_id}")
 
-            # Check permissions if user_id provided
             if user_id and not self.can_modify_media(media, user_id):
                 logger.warning(f"User {user_id} not allowed to modify media {media_id}")
                 raise PermissionDenied("Cannot modify this media")
 
-            # Extract tags from schema if present
             obj_data = obj_in.model_dump(
                 exclude_unset=True, exclude_none=True
             )  # Added exclude_none
             tags = obj_data.pop("tags", None)
 
-            # Update media fields
             for field, value in obj_data.items():
                 if hasattr(media, field):  # Safety check
                     setattr(media, field, value)
@@ -318,7 +333,6 @@ class CRUDMedia(CRUDBase[Media]):
             db.add(media)
             await db.flush()
 
-            # Update tags if present (None means don't update tags, [] means clear tags)
             if tags is not None:
                 await tag_crud.update_media_tags(
                     db, media_id=media_id, media_type=media_type, tag_names=tags
@@ -326,7 +340,11 @@ class CRUDMedia(CRUDBase[Media]):
 
             await db.commit()
 
-            # Re-query with eager loading
+            # Invalidate details cache for this item
+            if media.external_id and media.external_source:
+                # We don't know the exact endpoint used, so clear patterns
+                await cache.clear_pattern(f"api:{media.external_source}:*{media.external_id}*")
+
             stmt = (
                 select(type(media))
                 .options(
@@ -450,7 +468,7 @@ class CRUDMedia(CRUDBase[Media]):
         )
 
     async def delete(
-        self, db: AsyncSession, *, id: int, user_id: Optional[int] = None
+        self, db: AsyncSession, *, id: int, user_id: Optional[int] = None, commit: bool = True
     ) -> bool:
         """Delete media by ID"""
         try:
@@ -461,14 +479,36 @@ class CRUDMedia(CRUDBase[Media]):
                 logger.warning(f"Media not found with id: {id}")
                 return False
 
-            # Check permissions if user_id provided
             if user_id and not self.can_modify_media(media, user_id):
                 logger.warning(f"User {user_id} not allowed to delete media {id}")
                 raise PermissionDenied("Cannot delete this media")
 
-            # Tags will be deleted automatically via cascade
+            # File cleanup logic
+            if media.cover_image_url and media.cover_image_url.startswith("/static/images/"):
+                try:
+                    # Resolve path relative to project root
+                    base_path = Path(__file__).resolve().parent.parent.parent
+                    relative_path = media.cover_image_url.lstrip("/")
+                    file_path = base_path / relative_path
+
+                    if file_path.is_file():
+                        logger.info(f"Deleting local image file: {file_path}")
+                        file_path.unlink(missing_ok=True)
+                except Exception as e:
+                    # Log but don't block DB deletion
+                    logger.error(f"Error deleting file {media.cover_image_url}: {str(e)}")
+
+            external_id = media.external_id
+            external_source = media.external_source
+
             await db.delete(media)
-            await db.commit()
+            if commit:
+                await db.commit()
+
+            # Invalidate cache
+            if external_id and external_source:
+                await cache.clear_pattern(f"api:{external_source}:*{external_id}*")
+                await cache.clear_pattern(f"api:{external_source}:search:*")
 
             logger.info(f"Successfully deleted media with id: {id}")
             return True
@@ -481,6 +521,36 @@ class CRUDMedia(CRUDBase[Media]):
             await db.rollback()
             logger.error(f"Unexpected error deleting media {id}: {str(e)}")
             raise
+
+    async def cleanup_orphaned_media(self, db: AsyncSession) -> int:
+        """
+        Delete media that are not referenced by any tracking entries.
+        Includes both API-sourced and custom media.
+        """
+        logger.info("Starting orphaned media cleanup")
+
+        # Find media IDs that are NOT present in the tracking table
+        # We use a subquery for all media_ids in tracking
+        tracking_stmt = select(Tracking.media_id)
+        stmt = select(Media.id).where(Media.id.not_in(tracking_stmt))
+        
+        result = await db.execute(stmt)
+        orphaned_ids = list(result.scalars().all())
+
+        count = 0
+        if orphaned_ids:
+            logger.info(f"Found {len(orphaned_ids)} orphaned media items to clean up")
+            for media_id in orphaned_ids:
+                # Using self.delete ensures file cleanup and cache invalidation
+                if await self.delete(db, id=media_id, commit=False):
+                    count += 1
+            
+            await db.commit()
+            logger.info(f"Successfully cleaned up {count} orphaned media items")
+        else:
+            logger.info("No orphaned media items found")
+
+        return count
 
 
 media_crud = CRUDMedia(Media)

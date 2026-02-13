@@ -3,9 +3,11 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
-from core.logger import setup_logger
+from core.cache import cache
+from core.config import settings
+from core.logger import get_logger
 
-logger = setup_logger("services")
+logger = get_logger("services")
 
 
 class BaseAPIService(ABC):
@@ -16,11 +18,13 @@ class BaseAPIService(ABC):
         base_url: str,
         headers: Optional[Dict[str, str]] = None,
         timeout: int = 10,
+        cache_source: str = "unknown",
     ):
         self.base_url = base_url.rstrip("/")
         self.headers = headers or {}
         self.timeout = aiohttp.ClientTimeout(total=timeout)
         self._session: Optional[aiohttp.ClientSession] = None
+        self.cache_source = cache_source
 
     @property
     def session(self) -> aiohttp.ClientSession:
@@ -35,9 +39,19 @@ class BaseAPIService(ABC):
         self,
         endpoint: str,
         params: Optional[Dict[str, Any]] = None,
+        cache_ttl: Optional[int] = None,
     ) -> Optional[Dict[str, Any]]:
-        """Make GET request to API."""
+        """Make GET request to API with caching."""
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
+
+        # Generate cache key
+        param_str = "-".join([f"{k}={v}" for k, v in sorted(params.items())]) if params else ""
+        cache_key = f"api:{self.cache_source}:{endpoint}:{param_str}"
+
+        # Check cache
+        cached_data = await cache.get(cache_key)
+        if cached_data:
+            return cached_data
 
         try:
             logger.debug(f"GET {url} with params: {params}")
@@ -45,6 +59,10 @@ class BaseAPIService(ABC):
                 response.raise_for_status()
                 data = await response.json()
                 logger.debug(f"Response received: {len(str(data))} bytes")
+
+                # Store in cache
+                final_ttl = cache_ttl if cache_ttl is not None else settings.CACHE_TTL
+                await cache.set(cache_key, data, ttl=final_ttl)
                 return data
 
         except aiohttp.ClientResponseError as e:

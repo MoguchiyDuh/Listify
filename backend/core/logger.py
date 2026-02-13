@@ -1,70 +1,49 @@
 import logging
 import sys
-from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from colorama import Fore, Style, init
+import structlog
+from structlog.types import EventDict, Processor
 
 from .config import settings
 
-init(autoreset=True)
 
-COLORS = {
-    "DEBUG": Fore.CYAN,
-    "INFO": Fore.GREEN,
-    "WARNING": Fore.YELLOW,
-    "ERROR": Fore.RED,
-    "CRITICAL": Fore.MAGENTA + Style.BRIGHT,
-}
+def setup_logger(name: str = "listify") -> None:
+    """Configure structlog for structured JSON logging"""
 
+    # Shared processors
+    processors: list[Processor] = [
+        structlog.contextvars.merge_contextvars,
+        structlog.processors.add_log_level,
+        structlog.processors.StackInfoRenderer(),
+        structlog.dev.set_exc_info,
+        structlog.processors.TimeStamper(fmt="iso"),
+    ]
 
-def setup_logger(name: str, debug: bool = settings.DEBUG) -> logging.Logger:
-    """Logger with colored console output and rotating file handler"""
+    if settings.DEBUG:
+        # Development: Colorful console output
+        processors.append(structlog.dev.ConsoleRenderer())
+    else:
+        # Production: JSON output for machine parsing
+        processors.extend([
+            structlog.processors.dict_tracebacks,
+            structlog.processors.JSONRenderer()
+        ])
 
-    logger = logging.getLogger(name)
-
-    # Clear any existing handlers
-    logger.handlers.clear()
-
-    level = logging.DEBUG if debug else logging.INFO
-    logger.setLevel(level)
-
-    # Console handler with colors
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(level)
-
-    class ColorFormatter(logging.Formatter):
-        def format(self, record):
-            if sys.stdout.isatty():  # Only color in terminal
-                # Make a copy to avoid modifying the original record
-                record = logging.makeLogRecord(record.__dict__)
-                color = COLORS.get(record.levelname, "")
-                record.levelname = f"{color}{record.levelname}{Style.RESET_ALL}"
-                record.msg = f"{color}{record.msg}{Style.RESET_ALL}"
-            return super().format(record)
-
-    console_formatter = ColorFormatter(
-        fmt="[%(levelname)s] %(name)s: %(message)s", datefmt="%H:%M:%S"
+    structlog.configure(
+        processors=processors,
+        logger_factory=structlog.PrintLoggerFactory(),
+        cache_logger_on_first_use=True,
     )
-    console_handler.setFormatter(console_formatter)
-    logger.addHandler(console_handler)
 
-    # File handler with rotation (5MB max, 10 backup files)
-    log_dir = Path(__file__).parent.parent / "logs"
-    log_dir.mkdir(exist_ok=True)
-
-    log_file = log_dir / f"{name}.log"
-    file_handler = RotatingFileHandler(
-        log_file, maxBytes=5 * 1024 * 1024, backupCount=10, encoding="utf-8"  # 5MB
+    # Standard logging configuration for integration with other libraries
+    logging.basicConfig(
+        format="%(message)s",
+        stream=sys.stdout,
+        level=logging.DEBUG if settings.DEBUG else logging.INFO,
     )
-    file_handler.setLevel(level)
 
-    file_formatter = logging.Formatter(
-        fmt="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    file_handler.setFormatter(file_formatter)
-    logger.addHandler(file_handler)
 
-    logger.propagate = False
-    return logger
+def get_logger(name: str) -> structlog.BoundLogger:
+    """Get a structured logger for a specific module"""
+    return structlog.get_logger(name)

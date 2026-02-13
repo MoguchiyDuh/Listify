@@ -3,11 +3,11 @@ from datetime import date
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.exceptions import PermissionDenied
-from crud import media_crud, user_crud
-from models import MediaTypeEnum
+from core.exceptions import AlreadyExists, PermissionDenied
+from crud import media_crud, tracking_crud, user_crud
+from models import MediaTypeEnum, TrackingStatusEnum
 from schemas import (AnimeCreate, BookCreate, GameCreate, MangaCreate,
-                     MovieCreate, SeriesCreate)
+                     MovieCreate, SeriesCreate, TrackingCreate)
 
 
 @pytest.mark.crud
@@ -539,3 +539,117 @@ class TestMediaCRUD:
         """Test deleting non-existent media"""
         result = await media_crud.delete(db=clean_db, id=999)
         assert result is False
+
+    @pytest.mark.asyncio
+    async def test_create_duplicate_custom_media_raises_error(self, test_user, clean_db: AsyncSession):
+        """Test creating exact duplicate custom media for same user fails"""
+        movie_data = MovieCreate(
+            title="Unique Movie",
+            release_date=date(2024, 1, 1),
+            is_custom=True,
+        )
+
+        await media_crud.create_movie(db=clean_db, obj_in=movie_data, user_id=test_user.id)
+
+        # Attempt to create exact same movie
+        with pytest.raises(AlreadyExists):
+            await media_crud.create_movie(db=clean_db, obj_in=movie_data, user_id=test_user.id)
+
+    @pytest.mark.asyncio
+    async def test_create_duplicate_custom_media_different_users(self, clean_db: AsyncSession):
+        """Test different users can have identical custom media"""
+        user1 = await user_crud.create(
+            db=clean_db,
+            username="user1",
+            email="u1@example.com",
+            password="password123",
+        )
+        user2 = await user_crud.create(
+            db=clean_db,
+            username="user2",
+            email="u2@example.com",
+            password="password123",
+        )
+
+        movie_data = MovieCreate(title="Shared Title", is_custom=True)
+
+        m1 = await media_crud.create_movie(db=clean_db, obj_in=movie_data, user_id=user1.id)
+        m2 = await media_crud.create_movie(db=clean_db, obj_in=movie_data, user_id=user2.id)
+
+        assert m1.id != m2.id
+        assert m1.title == m2.title
+
+    @pytest.mark.asyncio
+    async def test_atomic_deletion_lifecycle(self, test_user, clean_db: AsyncSession):
+        """Test Plan 01 requirement: deleting tracking for custom media deletes the media"""
+        # 1. Create custom media
+        movie_data = MovieCreate(title="Disposable Movie", is_custom=True)
+        movie = await media_crud.create_movie(db=clean_db, obj_in=movie_data, user_id=test_user.id)
+
+        # 2. Create tracking for it
+        tracking_data = TrackingCreate(
+            media_id=movie.id,
+            media_type=MediaTypeEnum.MOVIE,
+            status=TrackingStatusEnum.PLANNED
+        )
+        tracking = await tracking_crud.create(db=clean_db, obj_in=tracking_data, user_id=test_user.id)
+
+        # 3. Delete tracking
+        await tracking_crud.delete(db=clean_db, user_id=test_user.id, media_id=movie.id)
+
+        # 4. Verify media is also gone
+        fetched = await media_crud.get_by_id(db=clean_db, id=movie.id)
+        assert fetched is None
+
+    @pytest.mark.asyncio
+    async def test_media_garbage_collection(self, test_user, clean_db: AsyncSession):
+        """Test garbage collection of orphaned media"""
+        # 1. Create API media item with a tracking (should keep)
+        movie_keep_data = MovieCreate(
+            title="Keep Me API",
+            external_id="keep123",
+            external_source="tmdb",
+        )
+        movie_keep = await media_crud.create_movie(db=clean_db, obj_in=movie_keep_data)
+
+        await tracking_crud.create(
+            db=clean_db,
+            obj_in=TrackingCreate(
+                media_id=movie_keep.id,
+                media_type=MediaTypeEnum.MOVIE,
+                status=TrackingStatusEnum.PLANNED
+            ),
+            user_id=test_user.id
+        )
+
+        # 2. Create API media item without a tracking (should delete)
+        movie_delete_api_data = MovieCreate(
+            title="Delete Me API",
+            external_id="delete123",
+            external_source="tmdb",
+        )
+        movie_delete_api = await media_crud.create_movie(db=clean_db, obj_in=movie_delete_api_data)
+
+        # 3. Create a custom media item without a tracking (orphaned - should delete)
+        movie_delete_custom_data = MovieCreate(
+            title="Delete Me Custom",
+            is_custom=True,
+        )
+        movie_delete_custom = await media_crud.create_movie(
+            db=clean_db, obj_in=movie_delete_custom_data, user_id=test_user.id
+        )
+
+        # Verify they exist before GC
+        assert await media_crud.get_by_id(db=clean_db, id=movie_keep.id) is not None
+        assert await media_crud.get_by_id(db=clean_db, id=movie_delete_api.id) is not None
+        assert await media_crud.get_by_id(db=clean_db, id=movie_delete_custom.id) is not None
+
+        # 4. Run the cleanup method
+        deleted_count = await media_crud.cleanup_orphaned_media(db=clean_db)
+
+        assert deleted_count == 2
+
+        # 5. Assert the state of the database
+        assert await media_crud.get_by_id(db=clean_db, id=movie_keep.id) is not None
+        assert await media_crud.get_by_id(db=clean_db, id=movie_delete_api.id) is None
+        assert await media_crud.get_by_id(db=clean_db, id=movie_delete_custom.id) is None

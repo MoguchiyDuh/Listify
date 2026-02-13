@@ -1,20 +1,22 @@
 from datetime import datetime
 from typing import List, Literal, Optional
 
+from core.cache import cached
 from models import AgeRatingEnum, MediaStatusEnum
 from schemas import AnimeCreate, MangaCreate
 
 from .base import BaseAPIService, logger
 
-logger = logger.getChild("jikan")
+logger = logger.bind(module="jikan")
 
 
 class JikanService(BaseAPIService):
     """Service for Jikan API (MyAnimeList unofficial API)."""
 
     def __init__(self):
-        super().__init__(base_url="https://api.jikan.moe/v4")
+        super().__init__(base_url="https://api.jikan.moe/v4", cache_source="jikan")
 
+    @cached("jikan:search", ttl=3600)
     async def search(
         self,
         query: str,
@@ -24,11 +26,12 @@ class JikanService(BaseAPIService):
         """Search anime or manga."""
         logger.debug(f"Searching Jikan {media_type} for: {query} (limit: {limit})")
         params = {"q": query, "limit": limit, "sfw": "false"}
-        data = await self._get(media_type, params)
+        data = await self._get(media_type, params, cache_ttl=3600)
         results = data.get("data", []) if data else []
-        logger.debug(f"Jikan search returned {len(results)} results: {results}")
+        logger.debug(f"Jikan search returned {len(results)} results")
         return results
 
+    @cached("jikan:details", ttl=7200)
     async def get_by_id(
         self,
         media_id: str,
@@ -36,7 +39,7 @@ class JikanService(BaseAPIService):
     ) -> Optional[dict]:
         """Get anime or manga details."""
         logger.debug(f"Fetching Jikan {media_type} by ID: {media_id}")
-        data = await self._get(f"{media_type}/{media_id}/full")
+        data = await self._get(f"{media_type}/{media_id}/full", cache_ttl=86400)
         if data and data.get("data"):
             logger.debug(
                 f"Found {media_type}: {data['data'].get('title', 'Unknown')}, data: {data['data']}"
@@ -67,7 +70,6 @@ class JikanService(BaseAPIService):
             except (ValueError, AttributeError):
                 pass
 
-        # Extract tags from genres, themes, and demographics
         tags = []
         for genre in jikan_data.get("genres", []):
             if genre.get("name"):
@@ -79,7 +81,6 @@ class JikanService(BaseAPIService):
             if demo.get("name"):
                 tags.append(demo["name"])
 
-        # Map age rating
         age_rating_map = {
             "G - All Ages": AgeRatingEnum.G,
             "PG - Children": AgeRatingEnum.PG,
@@ -119,12 +120,10 @@ class JikanService(BaseAPIService):
             "Not yet published": MediaStatusEnum.UPCOMING,
         }
 
-        # Extract authors
         authors = []
         if "authors" in jikan_data and jikan_data["authors"]:
             authors = [a.get("name") for a in jikan_data["authors"] if a.get("name")]
 
-        # Extract published date
         published = jikan_data.get("published", {})
         release_date = None
         if published.get("from"):
@@ -135,7 +134,6 @@ class JikanService(BaseAPIService):
             except (ValueError, AttributeError):
                 pass
 
-        # Extract tags from genres, themes, and demographics
         tags = []
         for genre in jikan_data.get("genres", []):
             if genre.get("name"):

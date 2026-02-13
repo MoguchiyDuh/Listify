@@ -2,13 +2,14 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import List, Optional
 
+from core.cache import cached
 from core.config import settings
 from models import PlatformEnum
 from schemas import GameCreate
 
 from .base import BaseAPIService, logger
 
-logger = logger.getChild("igdb_service")
+logger = logger.bind(module="igdb")
 
 
 class IGDBService(BaseAPIService):
@@ -18,7 +19,9 @@ class IGDBService(BaseAPIService):
         self._access_token = settings.IGDB_ACCESS_TOKEN
 
         super().__init__(
-            base_url="https://api.igdb.com/v4", headers=self._build_headers()
+            base_url="https://api.igdb.com/v4",
+            headers=self._build_headers(),
+            cache_source="igdb",
         )
 
     def _build_headers(self) -> dict:
@@ -62,19 +65,15 @@ class IGDBService(BaseAPIService):
 
                 expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
 
-                # Update headers with new token
                 self.headers = self._build_headers()
 
-                # Update ENV variables in settings
                 settings.IGDB_ACCESS_TOKEN = self._access_token
                 settings.IGDB_TOKEN_EXPIRES_AT = expires_at.isoformat()
 
-                # Close existing session and recreate with new headers
                 if self._session and not self._session.closed:
                     await self._session.close()
                 self._session = None
 
-                # Save token to .env file
                 self._save_token_to_env(self._access_token, expires_at)
 
                 logger.debug(
@@ -143,37 +142,52 @@ class IGDBService(BaseAPIService):
         except Exception as e:
             logger.error(f"Failed to save token to .env: {e}")
 
-    async def _query(self, endpoint: str, query: str) -> Optional[List[dict]]:
-        """Execute IGDB query using Apicalypse."""
+    async def _query(self, endpoint: str, query: str, cache_ttl: Optional[int] = None) -> Optional[List[dict]]:
+        """Execute IGDB query using Apicalypse with caching."""
         if not await self._check_auth():
             logger.error("Not authenticated with IGDB")
             return None
+
+        # Generate cache key
+        import hashlib
+        query_hash = hashlib.md5(query.encode()).hexdigest()
+        cache_key = f"api:igdb:{endpoint}:{query_hash}"
+
+        # Check cache
+        cached_data = await cache.get(cache_key)
+        if cached_data:
+            return cached_data
 
         logger.debug(f"Executing IGDB query: {query[:100]}...")
         data = await self._post(endpoint, data=query)
         if isinstance(data, list):
             logger.debug(f"IGDB query returned {len(data)} results")
+            # Store in cache
+            final_ttl = cache_ttl if cache_ttl is not None else settings.CACHE_TTL
+            await cache.set(cache_key, data, ttl=final_ttl)
             return data
         logger.warning("IGDB query returned non-list response")
         return None
 
+    @cached("igdb:search", ttl=3600)
     async def search(self, query: str, limit: int = 10) -> List[dict]:
         """Search games."""
         logger.debug(f"Searching IGDB for: {query} (limit: {limit})")
         apicalypse = f'search "{query}"; fields name,summary,first_release_date,cover.url,platforms.name,themes.name,genres.name,game_modes.name,involved_companies.company.name,involved_companies.developer,involved_companies.publisher; limit {limit};'
-        data = await self._query("games", apicalypse)
+        data = await self._query("games", apicalypse, cache_ttl=3600)
         results = data if data else []
-        logger.debug(f"IGDB search returned {len(results)} results: {results}")
+        logger.debug(f"IGDB search returned {len(results)} results")
         return results
 
+    @cached("igdb:details", ttl=7200)
     async def get_by_id(self, media_id: str) -> Optional[dict]:
         """Get game details."""
         logger.debug(f"Fetching IGDB game by ID: {media_id}")
         apicalypse = f"fields name,summary,first_release_date,cover.url,platforms.name,themes.name,genres.name,game_modes.name,involved_companies.company.name,involved_companies.developer,involved_companies.publisher; where id = {media_id};"
-        data = await self._query("games", apicalypse)
+        data = await self._query("games", apicalypse, cache_ttl=86400)
         if data and len(data) > 0:
             logger.debug(
-                f"Found game: {data[0].get('name', 'Unknown')}, data: {data[0]}"
+                f"Found game: {data[0].get('name', 'Unknown')}"
             )
             return data[0]
         logger.warning(f"Game not found with ID: {media_id}")
@@ -181,7 +195,6 @@ class IGDBService(BaseAPIService):
 
     def to_game_create(self, igdb_data: dict) -> GameCreate:
         """Convert IGDB data to GameCreate schema."""
-        # Extract platforms
         platforms = []
         platform_map = {
             "PC (Microsoft Windows)": PlatformEnum.PC,
@@ -201,7 +214,6 @@ class IGDBService(BaseAPIService):
             if mapped and mapped not in platforms:
                 platforms.append(mapped)
 
-        # Extract developers and publishers
         developers = []
         publishers = []
         for company in igdb_data.get("involved_companies", []):
@@ -211,7 +223,6 @@ class IGDBService(BaseAPIService):
             if company.get("publisher") and company_name:
                 publishers.append(company_name)
 
-        # Parse release date
         release_date = None
         if igdb_data.get("first_release_date"):
             try:
@@ -221,7 +232,6 @@ class IGDBService(BaseAPIService):
             except (ValueError, OSError, TypeError):
                 pass
 
-        # Extract tags from genres, themes, and game_modes
         tags = []
         for genre in igdb_data.get("genres", []):
             if genre.get("name"):

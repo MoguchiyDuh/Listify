@@ -4,9 +4,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import Base
-from core.logger import setup_logger
+from core.logger import get_logger
 
-logger = setup_logger("crud")
+logger = get_logger("crud")
 
 ModelType = TypeVar("ModelType", bound=Base)
 
@@ -40,7 +40,7 @@ class CRUDBase(Generic[ModelType]):
         logger.info(f"Creating {self.model.__name__}")
         db_obj = self.model(**obj_in)
         db.add(db_obj)
-        await db.commit()
+        await db.flush()
         await db.refresh(db_obj)
         logger.debug(f"Created {self.model.__name__} with id: {db_obj.id}")
         return db_obj
@@ -54,7 +54,7 @@ class CRUDBase(Generic[ModelType]):
             if value is not None:
                 setattr(db_obj, field, value)
         db.add(db_obj)
-        await db.commit()
+        await db.flush()
         await db.refresh(db_obj)
         logger.debug(f"Updated {self.model.__name__} with id: {db_obj.id}")
         return db_obj
@@ -65,7 +65,7 @@ class CRUDBase(Generic[ModelType]):
         obj = await db.get(self.model, id)
         if obj:
             await db.delete(obj)
-            await db.commit()
+            await db.flush()
             logger.debug(f"Deleted {self.model.__name__} with id: {id}")
             return True
         logger.warning(f"{self.model.__name__} not found with id: {id}")

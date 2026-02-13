@@ -22,7 +22,6 @@ class User(Base):
         nullable=False,
     )
 
-    # Relationships
     tracking_entries = relationship(
         "Tracking", back_populates="user", cascade="all, delete-orphan"
     )

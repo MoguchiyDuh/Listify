@@ -15,7 +15,7 @@ from services import IGDBService, JikanService, OpenLibraryService, TMDBService
 from .base import logger
 from .deps import get_current_user
 
-logger = logger.getChild("search")
+logger = logger.bind(module="search")
 
 router = APIRouter()
 

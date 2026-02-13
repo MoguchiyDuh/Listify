@@ -52,11 +52,38 @@ export function MediaList({ mediaType, title }: MediaListProps) {
     setShowDetailModal(false);
   };
 
-  const handleConfirmEdit = async (data: any) => {
+  const handleConfirmEdit = async (trackingData: any, mediaData?: any) => {
     if (!user || !editingTracking) return;
 
     try {
-      await api.updateTracking(user.id, editingTracking.media_id, data);
+      // Step 1: Update media if provided (only for custom media)
+      if (mediaData && editingTracking.media?.is_custom) {
+        const mediaId = editingTracking.media_id;
+        switch (mediaType) {
+          case "movie":
+            await api.updateMovie(mediaId, mediaData);
+            break;
+          case "series":
+            await api.updateSeries(mediaId, mediaData);
+            break;
+          case "anime":
+            await api.updateAnime(mediaId, mediaData);
+            break;
+          case "manga":
+            await api.updateManga(mediaId, mediaData);
+            break;
+          case "book":
+            await api.updateBook(mediaId, mediaData);
+            break;
+          case "game":
+            await api.updateGame(mediaId, mediaData);
+            break;
+        }
+      }
+
+      // Step 2: Update tracking
+      await api.updateTracking(user.id, editingTracking.media_id, trackingData);
+      
       setShowEditDialog(false);
       setEditingTracking(null);
       await loadTracking();

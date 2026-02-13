@@ -1,12 +1,13 @@
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Response, Request, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
 from core.database import get_db
 from core.exceptions import AlreadyExists, Unauthorized
+from core.limiter import limiter
 from crud import user_crud
 from models import User
 from schemas import Token, UserCreate, UserLogin, UserResponse
@@ -14,7 +15,7 @@ from schemas import Token, UserCreate, UserLogin, UserResponse
 from .base import logger
 from .deps import create_access_token, get_current_user
 
-logger = logger.getChild("auth")
+logger = logger.bind(module="auth")
 
 router = APIRouter()
 basic_security = HTTPBasic()
@@ -23,8 +24,12 @@ basic_security = HTTPBasic()
 @router.post(
     "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
 )
+@limiter.limit("3/minute")
 async def register(
-    user_data: UserCreate, response: Response, db: AsyncSession = Depends(get_db)
+    request: Request,
+    user_data: UserCreate,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
 ):
     """Register a new user and set auth cookie"""
     logger.info(f"Registration attempt for username: {user_data.username}")
@@ -52,9 +57,9 @@ async def register(
     response.set_cookie(
         key="access_token",
         value=access_token,
-        httponly=False,
+        httponly=True,
         secure=settings.COOKIE_SECURE,
-        samesite="lax",
+        samesite=settings.COOKIE_SAMESITE,
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
         domain=settings.COOKIE_DOMAIN,
@@ -65,8 +70,12 @@ async def register(
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit("5/minute")
 async def login(
-    user_data: UserLogin, response: Response, db: AsyncSession = Depends(get_db)
+    request: Request,
+    user_data: UserLogin,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
 ):
     """Login and get access token in cookie"""
     logger.info(f"Login attempt for username: {user_data.username}")
@@ -87,9 +96,9 @@ async def login(
     response.set_cookie(
         key="access_token",
         value=access_token,
-        httponly=False,
+        httponly=True,
         secure=settings.COOKIE_SECURE,
-        samesite="lax",
+        samesite=settings.COOKIE_SAMESITE,
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
         domain=settings.COOKIE_DOMAIN,
@@ -100,7 +109,9 @@ async def login(
 
 
 @router.post("/token", response_model=Token)
+@limiter.limit("5/minute")
 async def login_basic(
+    request: Request,
     response: Response,
     credentials: HTTPBasicCredentials = Depends(basic_security),
     db: AsyncSession = Depends(get_db),
@@ -124,9 +135,9 @@ async def login_basic(
     response.set_cookie(
         key="access_token",
         value=access_token,
-        httponly=False,
+        httponly=True,
         secure=settings.COOKIE_SECURE,
-        samesite="lax",
+        samesite=settings.COOKIE_SAMESITE,
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
         domain=settings.COOKIE_DOMAIN,

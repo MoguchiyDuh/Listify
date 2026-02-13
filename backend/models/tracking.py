@@ -30,10 +30,9 @@ class Tracking(Base):
     )
     media_type = Column(SQLEnum(MediaTypeEnum), nullable=False, index=True)
 
-    # Tracking fields
     status = Column(SQLEnum(TrackingStatusEnum), nullable=False)
-    rating = Column(Float, nullable=True)  # 0-10 scale
-    progress = Column(Integer, default=0)  # episodes watched, chapters read, etc.
+    rating = Column(Float, nullable=True)
+    progress = Column(Integer, default=0)
 
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
@@ -41,10 +40,8 @@ class Tracking(Base):
     favorite = Column(Boolean, default=False)
     notes = Column(Text, nullable=True)
 
-    # Unique constraint: one tracking entry per user per media
     __table_args__ = (UniqueConstraint("user_id", "media_id", name="uq_user_media"),)
 
-    # Relationships
     user = relationship("User", back_populates="tracking_entries")
     media = relationship("Media", back_populates="tracking_entries")
 

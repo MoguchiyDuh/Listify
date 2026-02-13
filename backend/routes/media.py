@@ -2,11 +2,13 @@ import uuid
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile, status
+import magic
+from fastapi import APIRouter, Depends, File, Query, UploadFile, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
 from core.exceptions import NotFound, PermissionDenied, ValidationError
+from core.limiter import limiter
 from crud import media_crud, tag_crud
 from models import MediaTypeEnum, User
 from schemas import (
@@ -33,13 +35,15 @@ from schemas import (
 from .base import logger
 from .deps import get_current_user
 
-logger = logger.getChild("media")
+logger = logger.bind(module="media")
 
 router = APIRouter()
 
 
 @router.post("/upload-image")
+@limiter.limit("10/minute")
 async def upload_image(
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
 ):
@@ -62,6 +66,13 @@ async def upload_image(
 
     try:
         content = await file.read()
+
+        # Magic number validation
+        mime = magic.from_buffer(content, mime=True)
+        if mime not in allowed_types:
+            raise ValidationError(
+                f"Invalid file content. Detected: {mime}. Allowed types: {', '.join(allowed_types)}"
+            )
 
         if len(content) > MAX_FILE_SIZE:
             raise ValidationError(
@@ -505,7 +516,9 @@ async def delete_game(
 
 # Search endpoint
 @router.get("/search")
+@limiter.limit("30/minute")
 async def search_media(
+    request: Request,
     q: str = Query(..., min_length=1),
     media_type: Optional[MediaTypeEnum] = None,
     limit: int = Query(100, ge=1, le=1000),
@@ -516,3 +529,14 @@ async def search_media(
     logger.info(f"User {current_user.username} searching for: {q}")
     results = await media_crud.search(db, query=q, media_type=media_type, limit=limit)
     return results
+
+
+@router.post("/gc", status_code=status.HTTP_200_OK)
+async def trigger_garbage_collection(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Trigger manual garbage collection of orphaned media"""
+    logger.info(f"User {current_user.username} triggered garbage collection")
+    deleted_count = await media_crud.cleanup_orphaned_media(db)
+    return {"deleted_count": deleted_count}

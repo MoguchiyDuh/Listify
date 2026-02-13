@@ -1,13 +1,14 @@
 from datetime import datetime
 from typing import List, Literal, Optional
 
+from core.cache import cached
 from core.config import settings
 from models import MediaStatusEnum
 from schemas import MovieCreate, SeriesCreate
 
 from .base import BaseAPIService, logger
 
-logger = logger.getChild("tmdb")
+logger = logger.bind(module="tmdb")
 
 
 class TMDBService(BaseAPIService):
@@ -21,6 +22,7 @@ class TMDBService(BaseAPIService):
                 if settings.TMDB_API_KEY
                 else {}
             ),
+            cache_source="tmdb",
         )
 
     def _build_params(self, **kwargs) -> dict:
@@ -28,6 +30,7 @@ class TMDBService(BaseAPIService):
         params = {**kwargs}
         return {k: v for k, v in params.items() if v is not None}
 
+    @cached("tmdb:search", ttl=3600)
     async def search(
         self,
         query: str,
@@ -39,11 +42,12 @@ class TMDBService(BaseAPIService):
         params = self._build_params(
             query=query, include_adult="true", append_to_response="credits"
         )
-        data = await self._get(f"search/{media_type}", params)
+        data = await self._get(f"search/{media_type}", params, cache_ttl=3600)
         results = data.get("results", [])[:limit] if data else []
-        logger.debug(f"TMDB search returned {len(results)} results: {results}")
+        logger.debug(f"TMDB search returned {len(results)} results")
         return results
 
+    @cached("tmdb:details", ttl=7200)
     async def get_by_id(
         self,
         media_id: str,
@@ -52,7 +56,7 @@ class TMDBService(BaseAPIService):
         """Get movie or TV show details."""
         logger.debug(f"Fetching TMDB {media_type} by ID: {media_id}")
         params = self._build_params(include_adult="true", append_to_response="credits")
-        data = await self._get(f"{media_type}/{media_id}", params)
+        data = await self._get(f"{media_type}/{media_id}", params, cache_ttl=86400)
         if data:
             title = data.get("title") if media_type == "movie" else data.get("name")
             logger.debug(f"Found {media_type}: {title or 'Unknown'}, data: {data}")
@@ -75,7 +79,6 @@ class TMDBService(BaseAPIService):
             f"Converting TMDB movie data for: {tmdb_data.get('title', 'Unknown')}"
         )
 
-        # Extract directors
         directors = []
         if "credits" in tmdb_data and tmdb_data.get("credits").get("crew"):
             directors = {
@@ -85,7 +88,6 @@ class TMDBService(BaseAPIService):
             }
             directors = list(directors)
 
-        # Extract genres as tags
         tags = []
         if tmdb_data.get("genres"):
             tags = [genre["name"] for genre in tmdb_data["genres"]]
@@ -125,7 +127,6 @@ class TMDBService(BaseAPIService):
             f"Converting TMDB series data for: {tmdb_data.get('name', 'Unknown')}"
         )
 
-        # Extract directors
         directors = []
         if "credits" in tmdb_data and tmdb_data.get("credits").get("crew"):
             directors = {
@@ -135,7 +136,6 @@ class TMDBService(BaseAPIService):
             }
             directors = list(directors)
 
-        # Extract genres as tags
         tags = []
         if tmdb_data.get("genres"):
             tags = [genre["name"] for genre in tmdb_data["genres"]]
