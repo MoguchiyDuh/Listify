@@ -188,24 +188,24 @@ class TestTrackingRoutes:
         """Test getting tracking statistics"""
         token = await self.get_auth_token(client, test_user)
 
-        # Create tracking with different statuses
-        statuses_with_ratings = [
-            (TrackingStatusEnum.COMPLETED, 8.0),
-            (TrackingStatusEnum.COMPLETED, 9.0),
-            (TrackingStatusEnum.IN_PROGRESS, 7.5),
-            (TrackingStatusEnum.PLANNED, None),
+        # Create tracking with different statuses and types
+        stats_data = [
+            (TrackingStatusEnum.COMPLETED, 8.0, MediaTypeEnum.MOVIE),
+            (TrackingStatusEnum.COMPLETED, 9.0, MediaTypeEnum.MOVIE),
+            (TrackingStatusEnum.IN_PROGRESS, 7.5, MediaTypeEnum.ANIME),
+            (TrackingStatusEnum.PLANNED, None, MediaTypeEnum.BOOK),
         ]
 
-        for i, (status, rating) in enumerate(statuses_with_ratings):
+        for i, (status, rating, media_type) in enumerate(stats_data):
             movie = await media_crud.create_movie(
                 db=clean_db,
-                obj_in=MovieCreate(title=f"Movie {i}", description="Test"),
+                obj_in=MovieCreate(title=f"Media {i}", description="Test"),
             )
             await tracking_crud.create(
                 db=clean_db,
                 obj_in=TrackingCreate(
                     media_id=movie.id,
-                    media_type=MediaTypeEnum.MOVIE,
+                    media_type=media_type,
                     status=status,
                     rating=rating,
                 ),
@@ -223,6 +223,10 @@ class TestTrackingRoutes:
         assert data["completed"] == 2
         assert data["in_progress"] == 1
         assert data["plan_to_watch"] == 1
+        assert data["by_type"]["movie"] == 2
+        assert data["by_type"]["anime"] == 1
+        assert data["by_type"]["book"] == 1
+        assert data["by_type"]["series"] == 0
 
     @pytest.mark.asyncio
     async def test_get_tracking_by_media(

@@ -326,6 +326,14 @@ class CRUDTracking(CRUDBase[Tracking]):
             else 0
         )
 
+        if not media_type:
+            by_type = {}
+            for m_type in MediaTypeEnum:
+                by_type[m_type.value] = len(
+                    [e for e in all_entries if e.media_type == m_type]
+                )
+            stats["by_type"] = by_type
+
         logger.debug(f"Statistics for user_id {user_id}: {stats}")
         return stats
 
