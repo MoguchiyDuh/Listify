@@ -77,23 +77,31 @@ class CRUDTracking(CRUDBase[Tracking]):
 
         # Define default status and priority sorting
         status_order = case(
-            (Tracking.status == TrackingStatusEnum.IN_PROGRESS, 1),
-            (Tracking.status == TrackingStatusEnum.PLANNED, 2),
-            (Tracking.status == TrackingStatusEnum.ON_HOLD, 3),
-            (Tracking.status == TrackingStatusEnum.COMPLETED, 4),
-            (Tracking.status == TrackingStatusEnum.DROPPED, 5),
+            (Tracking.status == TrackingStatusEnum.IN_PROGRESS.value, 1),
+            (Tracking.status == TrackingStatusEnum.PLANNED.value, 2),
+            (Tracking.status == TrackingStatusEnum.ON_HOLD.value, 3),
+            (Tracking.status == TrackingStatusEnum.COMPLETED.value, 4),
+            (Tracking.status == TrackingStatusEnum.DROPPED.value, 5),
             else_=6,
         )
+        # Priority order that includes IN_PROGRESS at the top
+        # This ensures IN_PROGRESS items stay at the top even when sorting by priority
         priority_order = case(
-            (Tracking.priority == TrackingPriorityEnum.HIGH, 1),
-            (Tracking.priority == TrackingPriorityEnum.MID, 2),
-            (Tracking.priority == TrackingPriorityEnum.LOW, 3),
-            else_=4,
+            (Tracking.status == TrackingStatusEnum.IN_PROGRESS.value, 1),
+            (Tracking.priority == TrackingPriorityEnum.HIGH.value, 2),
+            (Tracking.priority == TrackingPriorityEnum.MID.value, 3),
+            (Tracking.priority == TrackingPriorityEnum.LOW.value, 4),
+            (Tracking.status == TrackingStatusEnum.ON_HOLD.value, 5),
+            else_=6,
         )
 
         # Apply sorting
         if sort_by == "priority":
-            stmt = stmt.order_by(priority_order.asc(), Tracking.id.desc())
+            # For priority sort, we want to respect the primary status order (In Progress first)
+            # but then group by priority within Planned, and keep other groups organized
+            stmt = stmt.order_by(
+                priority_order.asc(), status_order.asc(), Tracking.id.desc()
+            )
         elif sort_by == "rating":
             stmt = stmt.order_by(desc(Tracking.rating), Tracking.id.desc())
         elif sort_by == "title":
