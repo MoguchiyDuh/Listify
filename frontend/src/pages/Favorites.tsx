@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { api } from "../lib/api";
 import { MediaCard } from "../components/MediaCard";
 import type { Tracking } from "../types";
@@ -23,7 +24,12 @@ export function Favorites() {
   };
 
   if (loading) {
-    return <div className="text-center">Loading...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-24 space-y-4">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-muted-foreground animate-pulse">Loading favorites...</p>
+      </div>
+    );
   }
 
   return (

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
 import { api } from "../lib/api";
 import { MediaCard } from "../components/MediaCard";
@@ -166,11 +167,11 @@ export function Search() {
         ...trackingData,
       });
 
-      alert(`Added "${externalMedia.title || externalMedia.name}" to your list!`);
+      toast.success(`Added "${externalMedia.title || externalMedia.name}" to your list!`);
     } catch (error: any) {
       console.error("Failed to add to list:", error);
       const errorMsg = error.message || "Failed to add to list";
-      alert(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setAdding(null);
       setSelectedMedia(null);

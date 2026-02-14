@@ -85,6 +85,38 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 @app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Add security-related headers to all responses"""
+    response: Response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+
+    if settings.COOKIE_SECURE:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+
+    # Robust Content-Security-Policy
+    # Allow self, and for images allow data: and blobs for custom uploads
+    csp_directives = [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline'",  # unsafe-inline often needed for some React patterns, but 'self' is primary
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob: https://image.tmdb.org https://*.jikan.moe",
+        "connect-src 'self' https://api.themoviedb.org https://api.jikan.moe https://openlibrary.org https://api.igdb.com",
+        "font-src 'self'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+    ]
+    response.headers["Content-Security-Policy"] = "; ".join(csp_directives)
+
+    return response
+
+
+@app.middleware("http")
 async def csrf_middleware(request: Request, call_next):
     """Simple CSRF protection middleware using double-submit cookie pattern"""
     if settings.TESTING or request.method in ["GET", "HEAD", "OPTIONS", "TRACE"]:

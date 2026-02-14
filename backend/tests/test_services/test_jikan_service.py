@@ -28,7 +28,7 @@ class TestJikanService:
                 assert results[0]["title"] == "Steins;Gate"
 
                 mock_get.assert_called_once_with(
-                    "anime", {"q": "Steins Gate", "limit": 3, "sfw": "false"}
+                    "anime", {"q": "Steins Gate", "limit": 3, "sfw": "false"}, cache_ttl=3600
                 )
 
     @pytest.mark.asyncio

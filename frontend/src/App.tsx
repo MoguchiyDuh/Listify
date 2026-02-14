@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "sonner";
+import { Loader2 } from "lucide-react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { Layout } from "./components/Layout";
 import { Login } from "./pages/Login";
@@ -13,8 +15,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+      <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+        <div className="text-lg text-muted-foreground animate-pulse">Initializing Listify...</div>
       </div>
     );
   }
@@ -86,6 +89,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <Toaster richColors position="top-right" />
         <AppRoutes />
       </AuthProvider>
     </BrowserRouter>
