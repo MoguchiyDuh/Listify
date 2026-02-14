@@ -175,15 +175,15 @@ export function AddMediaDialog({ media, onConfirm, onCancel, isOpen }: AddMediaD
           {/* Rating */}
           {showRating && (
             <div>
-              <label className="text-sm font-medium mb-2 block">Rating (0-10)</label>
+              <label className="text-sm font-medium mb-2 block">Rating (1-10)</label>
               <Input
                 type="number"
-                min="0"
+                min="1"
                 max="10"
-                step="0.1"
+                step="0.5"
                 value={rating}
                 onChange={(e) => setRating(e.target.value)}
-                placeholder="0-10"
+                placeholder="1-10"
               />
             </div>
           )}

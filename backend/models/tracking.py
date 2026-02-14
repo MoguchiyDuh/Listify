@@ -1,8 +1,17 @@
 from enum import Enum
 
-from sqlalchemy import Boolean, Column, Date
-from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import Float, ForeignKey, Integer, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Column,
+    Date,
+    Enum as SQLEnum,
+    Float,
+    ForeignKey,
+    Integer,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 
 from core.database import Base
@@ -47,7 +56,10 @@ class Tracking(Base):
     favorite = Column(Boolean, default=False)
     notes = Column(Text, nullable=True)
 
-    __table_args__ = (UniqueConstraint("user_id", "media_id", name="uq_user_media"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "media_id", name="uq_user_media"),
+        CheckConstraint("rating >= 1 AND rating <= 10", name="check_rating_range"),
+    )
 
     user = relationship("User", back_populates="tracking_entries")
     media = relationship("Media", back_populates="tracking_entries")

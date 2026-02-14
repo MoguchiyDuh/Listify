@@ -19,7 +19,7 @@ class TrackingBase(BaseModel):
 
     status: TrackingStatusEnum
     priority: Optional[TrackingPriorityEnum] = None
-    rating: Optional[float] = Field(None, ge=0, le=10)
+    rating: Optional[float] = Field(None, ge=1, le=10)
     progress: int = 0
     start_date: Optional[date] = None
     end_date: Optional[date] = None
@@ -39,7 +39,7 @@ class TrackingUpdate(BaseModel):
 
     status: Optional[TrackingStatusEnum] = None
     priority: Optional[TrackingPriorityEnum] = None
-    rating: Optional[float] = Field(None, ge=0, le=10)
+    rating: Optional[float] = Field(None, ge=1, le=10)
     progress: Optional[int] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
