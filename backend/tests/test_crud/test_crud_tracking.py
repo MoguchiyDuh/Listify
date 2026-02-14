@@ -23,7 +23,7 @@ class TestTrackingCRUD:
         tracking_data = TrackingCreate(
             media_id=movie.id,
             media_type=MediaTypeEnum.MOVIE,
-            status=TrackingStatusEnum.PLANNED,
+            status=TrackingStatusEnum.COMPLETED,
             rating=8.5,
             progress=0,
         )
@@ -36,7 +36,7 @@ class TestTrackingCRUD:
         assert tracking.user_id == test_user.id
         assert tracking.media_id == movie.id
         assert tracking.media_type == MediaTypeEnum.MOVIE
-        assert tracking.status == TrackingStatusEnum.PLANNED
+        assert tracking.status == TrackingStatusEnum.COMPLETED
         assert tracking.rating == 8.5
         assert tracking.progress == 0
         assert tracking.favorite is False

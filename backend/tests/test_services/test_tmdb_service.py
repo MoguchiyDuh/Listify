@@ -151,3 +151,26 @@ class TestTMDBService:
                     "xyzinvalid", limit=5, media_type="movie"
                 )
                 assert results == []
+
+    @pytest.mark.asyncio
+    async def test_error_handling(self):
+        """Test handling of HTTP errors"""
+        with patch.object(TMDBService, "_get", new_callable=AsyncMock) as mock_get:
+            mock_get.side_effect = Exception("HTTP Error")
+
+            async with TMDBService() as service:
+                results = await service.search("Inception", media_type="movie")
+                assert results == []
+
+    @pytest.mark.asyncio
+    async def test_cache_integration(self, load_fixture):
+        """Test that service uses cache when available"""
+        fixture_data = load_fixture("tmdb", "movie_search.json")
+        
+        with patch("services.tmdb.cache.get", new_callable=AsyncMock) as mock_cache_get:
+            mock_cache_get.return_value = fixture_data
+            
+            async with TMDBService() as service:
+                results = await service.search("Inception", media_type="movie")
+                assert results == fixture_data
+                mock_cache_get.assert_called_once()

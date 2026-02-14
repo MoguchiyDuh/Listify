@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { api } from "../lib/api";
 import { MediaCard } from "../components/MediaCard";
@@ -146,25 +148,25 @@ export function MediaList({ mediaType, title }: MediaListProps) {
       setShowEditDialog(false);
       setEditingTracking(null);
       await loadTracking();
+      toast.success("Updated successfully!");
     } catch (error) {
       console.error("Failed to update tracking:", error);
-      alert("Failed to update tracking");
+      toast.error("Failed to update tracking");
     }
   };
 
   const handleDelete = async () => {
     if (!user || !editingTracking) return;
 
-    if (!confirm("Are you sure you want to remove this from your list?")) return;
-
     try {
       await api.deleteTracking(user.id, editingTracking.media_id);
       setShowEditDialog(false);
       setEditingTracking(null);
       await loadTracking();
+      toast.success("Removed from list");
     } catch (error) {
       console.error("Failed to delete tracking:", error);
-      alert("Failed to delete tracking");
+      toast.error("Failed to delete tracking");
     }
   };
 
@@ -217,10 +219,10 @@ export function MediaList({ mediaType, title }: MediaListProps) {
       setShowTrackingDialog(false);
       setCustomMediaData(null);
       await loadTracking();
-      alert("Custom media added successfully!");
+      toast.success("Custom media added successfully!");
     } catch (error: any) {
       console.error("Failed to add custom media:", error);
-      alert("Failed to add custom media: " + (error.message || "Unknown error"));
+      toast.error("Failed to add custom media: " + (error.message || "Unknown error"));
     }
   };
 
@@ -247,7 +249,10 @@ export function MediaList({ mediaType, title }: MediaListProps) {
       />
 
       {loading ? (
-        <div className="text-center py-12">Loading...</div>
+        <div className="flex flex-col items-center justify-center py-24 space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-muted-foreground animate-pulse">Loading your collection...</p>
+        </div>
       ) : tracking.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           No {title.toLowerCase()} found matching your filters

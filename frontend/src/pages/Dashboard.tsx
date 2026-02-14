@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { api } from "../lib/api";
 import { Card, CardContent, CardDescription, CardHeader } from "../components/ui/Card";
 import type { TrackingStats } from "../types";
@@ -49,7 +50,12 @@ export function Dashboard() {
   };
 
   if (loading) {
-    return <div className="text-center py-12">Loading...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-24 space-y-4">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-muted-foreground animate-pulse">Calculating stats...</p>
+      </div>
+    );
   }
 
   if (!stats) {

@@ -35,6 +35,7 @@ export function EditTrackingDialog({
   isOpen
 }: EditTrackingDialogProps) {
   const [activeTab, setActiveTab] = useState<"tracking" | "media">("tracking");
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   const getTodayDate = () => {
     const today = new Date();
@@ -632,16 +633,41 @@ export function EditTrackingDialog({
 
         {/* Actions */}
         <div className="flex gap-2 mt-6">
-          <Button onClick={handleSubmit} className="flex-1">
-            Save
-          </Button>
-          <Button onClick={onCancel} variant="outline" className="flex-1">
-            Cancel
-          </Button>
-          {onDelete && (
-            <Button onClick={onDelete} variant="outline" className="text-red-500 hover:text-red-600">
-              Delete
-            </Button>
+          {showConfirmDelete ? (
+            <>
+              <Button 
+                onClick={onDelete} 
+                variant="default" 
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              >
+                Confirm Delete
+              </Button>
+              <Button 
+                onClick={() => setShowConfirmDelete(false)} 
+                variant="outline" 
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button onClick={handleSubmit} className="flex-1">
+                Save
+              </Button>
+              <Button onClick={onCancel} variant="outline" className="flex-1">
+                Cancel
+              </Button>
+              {onDelete && (
+                <Button 
+                  onClick={() => setShowConfirmDelete(true)} 
+                  variant="outline" 
+                  className="text-red-500 hover:text-red-600"
+                >
+                  Delete
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
