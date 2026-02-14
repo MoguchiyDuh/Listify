@@ -75,16 +75,25 @@ class CRUDTracking(CRUDBase[Tracking]):
         if media_type:
             stmt = stmt.filter(Tracking.media_type == media_type)
 
+        # Define default status and priority sorting
+        status_order = case(
+            (Tracking.status == TrackingStatusEnum.IN_PROGRESS, 1),
+            (Tracking.status == TrackingStatusEnum.PLANNED, 2),
+            (Tracking.status == TrackingStatusEnum.ON_HOLD, 3),
+            (Tracking.status == TrackingStatusEnum.COMPLETED, 4),
+            (Tracking.status == TrackingStatusEnum.DROPPED, 5),
+            else_=6,
+        )
+        priority_order = case(
+            (Tracking.priority == TrackingPriorityEnum.HIGH, 1),
+            (Tracking.priority == TrackingPriorityEnum.MID, 2),
+            (Tracking.priority == TrackingPriorityEnum.LOW, 3),
+            else_=4,
+        )
+
         # Apply sorting
         if sort_by == "priority":
-            # Map priority Enum to numeric values for sorting
-            priority_order = case(
-                (Tracking.priority == TrackingPriorityEnum.HIGH, 3),
-                (Tracking.priority == TrackingPriorityEnum.MID, 2),
-                (Tracking.priority == TrackingPriorityEnum.LOW, 1),
-                else_=0,
-            )
-            stmt = stmt.order_by(desc(priority_order), Tracking.id.desc())
+            stmt = stmt.order_by(priority_order.asc(), Tracking.id.desc())
         elif sort_by == "rating":
             stmt = stmt.order_by(desc(Tracking.rating), Tracking.id.desc())
         elif sort_by == "title":
@@ -93,17 +102,10 @@ class CRUDTracking(CRUDBase[Tracking]):
             # Using ID as proxy for creation date
             stmt = stmt.order_by(Tracking.id.desc())
         else:
-            # Default sort for Planned is Priority, otherwise ID
-            if status == TrackingStatusEnum.PLANNED:
-                priority_order = case(
-                    (Tracking.priority == TrackingPriorityEnum.HIGH, 3),
-                    (Tracking.priority == TrackingPriorityEnum.MID, 2),
-                    (Tracking.priority == TrackingPriorityEnum.LOW, 1),
-                    else_=0,
-                )
-                stmt = stmt.order_by(desc(priority_order), Tracking.id.desc())
-            else:
-                stmt = stmt.order_by(Tracking.id.desc())
+            # Default sort: Status order, then Priority order, then ID
+            stmt = stmt.order_by(
+                status_order.asc(), priority_order.asc(), Tracking.id.desc()
+            )
 
         result = await db.execute(stmt.offset(skip).limit(limit))
         return list(result.unique().scalars().all())
