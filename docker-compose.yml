@@ -24,6 +24,9 @@ services:
     volumes:
       - db_data:/app/data
       - static_data:/app/static
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn main:app --host 0.0.0.0 --port 8000 --proxy-headers"
     depends_on:
       redis:
         condition: service_healthy
