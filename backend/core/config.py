@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     IGDB_ACCESS_TOKEN: Optional[str] = None
     IGDB_TOKEN_EXPIRES_AT: Optional[str] = None
 
+    MAL_CLIENT_ID: Optional[str] = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

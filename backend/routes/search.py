@@ -10,7 +10,7 @@ from schemas import (
     MovieCreate,
     SeriesCreate,
 )
-from services import IGDBService, JikanService, OpenLibraryService, TMDBService
+from services import IGDBService, MALService, OpenLibraryService, TMDBService
 
 from .base import logger
 from .deps import get_current_user
@@ -56,13 +56,13 @@ async def search_anime(
     limit: int = Query(10, ge=1, le=50),
     current_user: User = Depends(get_current_user),
 ):
-    """Search anime using Jikan (MyAnimeList)"""
-    logger.info(f"User {current_user.username} searching Jikan anime for: {q}")
+    """Search anime using MyAnimeList API v2"""
+    logger.info(f"User {current_user.username} searching MAL anime for: {q}")
 
-    async with JikanService() as service:
+    async with MALService() as service:
         results = await service.search(q, limit=limit, media_type="anime")
 
-    return {"results": results, "source": "jikan"}
+    return {"results": results, "source": "mal"}
 
 
 @router.get("/manga")
@@ -71,13 +71,13 @@ async def search_manga(
     limit: int = Query(10, ge=1, le=50),
     current_user: User = Depends(get_current_user),
 ):
-    """Search manga using Jikan (MyAnimeList)"""
-    logger.info(f"User {current_user.username} searching Jikan manga for: {q}")
+    """Search manga using MyAnimeList API v2"""
+    logger.info(f"User {current_user.username} searching MAL manga for: {q}")
 
-    async with JikanService() as service:
+    async with MALService() as service:
         results = await service.search(q, limit=limit, media_type="manga")
 
-    return {"results": results, "source": "jikan"}
+    return {"results": results, "source": "mal"}
 
 
 @router.get("/books")
@@ -149,16 +149,16 @@ async def get_anime_details(
     anime_id: str,
     current_user: User = Depends(get_current_user),
 ):
-    """Get anime details from Jikan"""
-    logger.info(f"User {current_user.username} fetching Jikan anime: {anime_id}")
+    """Get anime details from MyAnimeList"""
+    logger.info(f"User {current_user.username} fetching MAL anime: {anime_id}")
 
-    async with JikanService() as service:
+    async with MALService() as service:
         result = await service.get_by_id(anime_id, media_type="anime")
 
     if not result:
         raise NotFound("Anime", anime_id)
 
-    return {"result": result, "source": "jikan"}
+    return {"result": result, "source": "mal"}
 
 
 @router.get("/manga/{manga_id}")
@@ -166,16 +166,16 @@ async def get_manga_details(
     manga_id: str,
     current_user: User = Depends(get_current_user),
 ):
-    """Get manga details from Jikan"""
-    logger.info(f"User {current_user.username} fetching Jikan manga: {manga_id}")
+    """Get manga details from MyAnimeList"""
+    logger.info(f"User {current_user.username} fetching MAL manga: {manga_id}")
 
-    async with JikanService() as service:
+    async with MALService() as service:
         result = await service.get_by_id(manga_id, media_type="manga")
 
     if not result:
         raise NotFound("Manga", manga_id)
 
-    return {"result": result, "source": "jikan"}
+    return {"result": result, "source": "mal"}
 
 
 @router.get("/books/{book_id}")
@@ -255,8 +255,8 @@ async def convert_anime(
     external_data: dict = Body(...),
     current_user: User = Depends(get_current_user),
 ):
-    """Convert Jikan anime data to AnimeCreate schema"""
-    service = JikanService()
+    """Convert MyAnimeList anime data to AnimeCreate schema"""
+    service = MALService()
     return service.to_anime_create(external_data)
 
 
@@ -265,8 +265,8 @@ async def convert_manga(
     external_data: dict = Body(...),
     current_user: User = Depends(get_current_user),
 ):
-    """Convert Jikan manga data to MangaCreate schema"""
-    service = JikanService()
+    """Convert MyAnimeList manga data to MangaCreate schema"""
+    service = MALService()
     return service.to_manga_create(external_data)
 
 

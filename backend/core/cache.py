@@ -21,7 +21,7 @@ class RedisCache:
                 settings.REDIS_URL, encoding="utf-8", decode_responses=True
             )
             await self._redis.ping()
-            logger.info(f"Redis connected: {settings.REDIS_URL}")
+            logger.info("Redis connected")
         except Exception as e:
             logger.warning(f"Redis connection failed: {e}. Caching disabled.")
             self._redis = None

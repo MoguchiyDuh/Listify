@@ -11,6 +11,8 @@ logger = logger.bind(module="jikan")
 
 
 class JikanService(BaseAPIService):
+    SOURCE = "jikan"
+
     """Service for Jikan API (MyAnimeList unofficial API)."""
 
     def __init__(self):
@@ -102,7 +104,7 @@ class JikanService(BaseAPIService):
             .get("jpg", {})
             .get("large_image_url"),
             external_id=str(jikan_data.get("mal_id")),
-            external_source="jikan",
+            external_source=self.SOURCE,
             total_episodes=jikan_data.get("episodes"),
             studios=studios if studios else None,
             status=status_map.get(jikan_data.get("status"), MediaStatusEnum.FINISHED),
@@ -158,7 +160,7 @@ class JikanService(BaseAPIService):
             .get("jpg", {})
             .get("large_image_url"),
             external_id=str(jikan_data.get("mal_id")),
-            external_source="jikan",
+            external_source=self.SOURCE,
             total_chapters=jikan_data.get("chapters"),
             total_volumes=jikan_data.get("volumes"),
             authors=authors if authors else None,
